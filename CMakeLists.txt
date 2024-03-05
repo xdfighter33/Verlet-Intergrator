@@ -10,6 +10,14 @@ FetchContent_Declare(SFML
 FetchContent_MakeAvailable(SFML)
 
 add_executable(CMakeSFMLProject main.cpp)
+
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/Shaders DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+get_filename_component(SHADER_ABSOLUTE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/Shaders" ABSOLUTE)
+target_compile_definitions(Ray_Marching PRIVATE SHADER_DIR="${SHADER_ABSOLUTE_PATH}")
+
+
+
 target_link_libraries(CMakeSFMLProject PRIVATE sfml-graphics)
 target_compile_features(CMakeSFMLProject PRIVATE cxx_std_17)
 

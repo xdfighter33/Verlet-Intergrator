@@ -75,6 +75,10 @@ class Simulator {
         object.setVelo(v, getStepDt());
     }
 
+    float return_time(){
+    return m_time;
+    }   
+
 
     const std::vector<particle>& getObject() const
     {
@@ -90,10 +94,11 @@ void update()
     for(uint32_t i{m_sub_steps}; i--;)
     {
         //test_centr(step_dt);
-        AttractToCenter(10,Mass,step_dt);
-        applyGravity(step_dt);
+      //  AttractToCenter(10,Mass,step_dt);
+        applyGravity(0.5);
         checkCollsion(step_dt);
         appplyConstraint(step_dt);
+       // RotateGravity(step_dt);
         updateObjects(step_dt);
     }
 }
@@ -117,6 +122,13 @@ uint64_t getObjectCount() const{
     return m_objects.size();
 }
 
+void rotate_degrees(float degrees){
+    rotation =  500 * sin(m_time);
+}
+
+float return_rotation(){
+    return rotation;
+}
  private:
 std::vector<particle> m_objects;
 
@@ -125,7 +137,7 @@ sf::Vector2f Mass = {500,500};
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
 float m_frame_dt = 0.0f;
-
+float rotation = 0;
 
 
 void AttractToCenter(float strength,sf::Vector2f Posi,float dt)
@@ -203,18 +215,26 @@ object_1.setVelo(force,dt);
         }
     }
 }
-void applyGravity(float dt)
+void applyRotatoionGravity(float dt)
 {
+    float rotate = 500 * sin(dt);
+    float test_x =  300 * sin(360 + m_time) - 300 * cos(360 + m_time);
+    float test_y = 300 * sin( 360 + m_time) + 300 * cos(360 + m_time);
+    sf::Vector2f Temp(test_x,test_y);
+    m_gravity = Temp;
     for(auto& obj : m_objects){
         obj.accerlate(m_gravity);
     }
 }
 
 // Rotation around the boundaries 
-void RotateGravity(float dt)
+void applyGravity(float dt)
 {
-    sf::Vector2f Center_point = {500.0f,500.0f};
-    float radius; 
+
+      for(auto& obj : m_objects){
+        obj.accerlate(m_gravity);
+    }
+ 
 
 }
 

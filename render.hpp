@@ -9,6 +9,7 @@ class render
     :m_target{target}
     {
     }
+
 void renders(const Simulator& simulator) const
 {
     sf::CircleShape circle{1.0f};
