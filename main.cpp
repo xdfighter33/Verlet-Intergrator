@@ -5,7 +5,17 @@
 #include "render.hpp"
 
 const int window_width = 1000;
-const int window_height = 1000; 
+const int window_height = 1000;
+
+float r = 0;
+float b = 230;
+float g = 0;
+
+sf::Vector3f sphereColor(1.0f, 0.0f, 0.0f);
+
+
+std::string fragmentShaderPath = std::string(SHADER_DIR) + "/vert.frag";
+
 
 bool spawn_delayz(sf::Time clock,float time){
 
@@ -15,25 +25,42 @@ bool spawn_delayz(sf::Time clock,float time){
     }
 
 };
-auto shader = sf::Shader{};
+
+
 
 
 sf::Vector2f spawn_pos1(sf::Vector2f pos, float x, sf::Time time, float angle){
 
-
-
 return pos; 
 };
+
+
+auto shader = sf::Shader{};
+
+
+
+
+
 int main(){
 
-       if (!shader.loadFromFile("Shaders/vert.frag", sf::Shader::Fragment))
+
+
+
+    
+   if (!shader.loadFromFile(fragmentShaderPath, sf::Shader::Fragment))
     {
-        std::cerr << "Couldn't load fragment shader\n";
+        std::cerr << "Couldn't load vert shader\n";
         return -1;
     }
+
     sf::RenderWindow window(sf::VideoMode(window_width,window_height), "Physics ");
     const uint32_t frame_rate = 60;
     window.setFramerateLimit(frame_rate);
+
+
+
+ 
+    auto shape = sf::RectangleShape{ sf::Vector2f{ window.getSize() } };
 
 
     Simulator simulator;
@@ -52,7 +79,9 @@ int main(){
     const float spawn_delay = 0.5f;
     const uint32_t max_object_count = 500;
     const float max_angle = 5.0f;
+    
 
+    sf::Color test(r,g,b);
 
 
 
@@ -87,6 +116,7 @@ while(window.pollEvent(events)){
 
 }
   
+
 if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElapsedTime(),spawn_delay) == false ){
     
     float time_spawn = clock.getElapsedTime().asSeconds();
@@ -96,14 +126,23 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
 
     auto & object = simulator.addObject(poz, object_min_radius);
   
-
+    object.color = sf::Color(sphereColor.x,sphereColor.y,sphereColor.z);
     simulator.setObjectVelocity(object,object_initial_speed);
 
 }
+
+//SHADER VARIABLES
+
+
+
+
+shader.setUniform("u_resolution", sf::Glsl::Vec2{ window.getSize() });
+shader.setUniform("u_time",simulator.return_time());
+shader.setUniform("sphereColor",sphereColor);
 simulator.update();
 window.clear(sf::Color::Black);
 renders.renders(simulator);
-//window.draw(line);
+window.draw(shape,&shader);
 window.display();
 
 
