@@ -24,6 +24,11 @@ struct particle {
 {}
 
 
+void set_color(sf::Color Color){
+    color = Color;
+}
+
+
 void updatePosition(float dt)
 {
     sf::Vector2f Vel = pos - old_pos;
@@ -93,12 +98,14 @@ void update()
     float step_dt = getStepDt();
     for(uint32_t i{m_sub_steps}; i--;)
     {
-        //test_centr(step_dt);
-      //  AttractToCenter(10,Mass,step_dt);
-        applyGravity(0.5);
+     //  AttractToCenter(2,sf::Vector2f(450,450),step_dt);
+      applyGravity(step_dt);
+    //   circukarMotion(step_dt);
+    //    applyRotatoionGravity(step_dt);
         checkCollsion(step_dt);
         appplyConstraint(step_dt);
        // RotateGravity(step_dt);
+       fricition(step_dt);
         updateObjects(step_dt);
     }
 }
@@ -132,7 +139,7 @@ float return_rotation(){
  private:
 std::vector<particle> m_objects;
 
-sf::Vector2f m_gravity = {0,1000.0f};
+sf::Vector2f m_gravity = {0,750.0f};
 sf::Vector2f Mass = {500,500};
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
@@ -217,9 +224,9 @@ object_1.setVelo(force,dt);
 }
 void applyRotatoionGravity(float dt)
 {
-    float rotate = 500 * sin(dt);
-    float test_x =  300 * sin(360 + m_time) - 300 * cos(360 + m_time);
-    float test_y = 300 * sin( 360 + m_time) + 300 * cos(360 + m_time);
+    float rotate = m_time ;
+    float test_x =  300 * sin(360 + rotate) - 300 * cos(360 + rotate);
+    float test_y = 300 * sin( 360 + rotate) + 300 * cos(360 + rotate);
     sf::Vector2f Temp(test_x,test_y);
     m_gravity = Temp;
     for(auto& obj : m_objects){
@@ -268,8 +275,41 @@ void checkCollsion(float dt)
 
 void fricition(float dt)
 {
-const uint64_t object_count = m_objects.size();
+
+for(auto& obj : m_objects){
+  sf::Vector2f Friction_force = -.999f *  obj.GetVelocity(dt);
+
+  obj.accerlate(Friction_force);
+
+
 }
+}
+
+void drag_force(float dt){
+
+    for(auto& obj : m_objects){
+        
+    }
+}
+void circukarMotion(float dt){
+    
+
+    float test_x =  300 * sin(360 + m_time) - 300 * cos(360 + m_time);
+    float test_y = 300 * sin( 360 + m_time) + 300 * cos(360 + m_time);
+
+ // angluar_accerlation = angluar_accerlation / rad ;
+       const uint64_t object_count = m_objects.size();
+    for (auto&  obj : m_objects) {
+
+            obj.setVelo(sf::Vector2f(test_x,test_y),dt);
+
+    }   
+
+}
+
+void centriPetalforce(float dt){
+}
+
 
 void appplyConstraint(float dt)
 {
