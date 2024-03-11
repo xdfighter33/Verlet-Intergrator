@@ -1,9 +1,9 @@
 #include <iostream>
-#include <Sfml/Graphics.hpp>
+#include <SFML/Graphics.hpp>
 #include <random>
 #include "physics.hpp"
 #include "render.hpp"
-
+#include "tree.hpp"
 const int window_width = 1000;
 const int window_height = 1000;
 
@@ -35,6 +35,7 @@ static sf::Color getRainbow(float t, float velx, float vely)
     return sf::Color(red, green, blue);
 }
 
+
 sf::Color velo_test(sf::Vector2f velo){
     float red = 5;
     float blue = 5 ;
@@ -59,7 +60,7 @@ bool spawn_delayz(sf::Time clock,float time){
 
             return true;
     }
-
+    
 };
 
 
@@ -110,21 +111,23 @@ int main(){
     auto shape = sf::RectangleShape{ sf::Vector2f{ window.getSize() } };
 
 
-    Simulator simulator;
+
+
+    Simulator simulator{1000,1000};
 
     render renders{window};
 
-    simulator.setSubsStepscount(8);
+    simulator.setSubsStepscount(2);
     simulator.setSimulationUpdateRate(frame_rate);
-    const float x_spawn =  25;
+    const float x_spawn =  100;
     const float y_spawn =  0;
     
     sf::Vector2f object_spawn_position = {x_spawn, y_spawn};
-    const sf::Vector2f object_initial_speed = {1000.0f,50.0f};
+    const sf::Vector2f object_initial_speed = {1500.0f,50.0f};
     const float object_min_radius = 5.0f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .025;
-    const uint32_t max_object_count = 2000;
+    const float spawn_delay = .025f;
+    const uint32_t max_object_count = 1500;
     const float max_angle = 360.0f;
     
 
@@ -170,11 +173,12 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
      clock.restart();
 
     auto & object = simulator.addObject(object_spawn_position, object_min_radius);
-    
 
-    object.color = getRainbow(simulator.return_time(),100,300);
+    object.color = getRainbow(simulator.return_time(),250,300);
     simulator.setObjectVelocity(object,object_initial_speed);
+
 }
+
 
 //SHADER VARIABLES
 

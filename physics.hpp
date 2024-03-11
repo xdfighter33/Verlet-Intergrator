@@ -1,23 +1,23 @@
+
 #pragma once
 
 #include <vector>
-
-#include <sfml/Graphics.hpp>
-
-
+#include <SFML/Graphics.hpp>
+#include "collisionCells.hpp"
+#include "tree.hpp"
 struct particle {
-
     float radius = 10.f; 
 
     sf::Vector2f pos;
     sf::Vector2f old_pos;
     sf::Vector2f accel = {0,0};
     sf::Color color = sf::Color::White;
-
-    particle() = default;
+    uint32_t index;
+   particle() : index(0) {}
 
     particle(sf::Vector2f position_, float radius_)
     : pos{position_}
+    , index(0)
     , old_pos{position_}
     ,accel{0.0f,0.0f}
     ,radius{radius_}
@@ -67,14 +67,38 @@ sf::Vector2f GetVelocity(float dt)
 
 
 class Simulator {
+
+std::vector<particle> m_objects;
+
+
+
     public:
-    Simulator() = default;
-
-    particle& addObject(sf::Vector2f position, float radius)
+  //  Simulator() = default;
+    
+	Simulator(uint32_t width, uint32_t height)
+    : grid(width,height)
+    , world_size((float)width,(float)height)
     {
-        return m_objects.emplace_back(position,radius);
-    }
+        grid.clear();
+    };
 
+
+
+  
+
+
+
+
+
+
+
+
+particle& addObject(sf::Vector2f position, float radius)
+{
+    particle newParticle(position, radius);
+    m_objects.push_back(newParticle);
+    return m_objects.back();
+}
     void setObjectVelocity(particle& object, sf::Vector2f v)
     {
         object.setVelo(v, getStepDt());
@@ -98,15 +122,31 @@ void update()
     float step_dt = getStepDt();
     for(uint32_t i{m_sub_steps}; i--;)
     {
-     //  AttractToCenter(2,sf::Vector2f(450,450),step_dt);
-      applyGravity(step_dt);
-    //   circukarMotion(step_dt);
+ 
+     
+     applyGravity(step_dt);
+
+     
+
+
     //    applyRotatoionGravity(step_dt);
-        checkCollsion(step_dt);
-        appplyConstraint(step_dt);
+       
+   //  solveCollisions();
+ //  checkGridData();
+         addObjectsToGrid();
+         solveCollisions();
+   //      find_collision_grid();  
+    appplyConstraint(step_dt);
+    //          drag_force(step_dt);
+      fricition(step_dt);
+    updateObjects(step_dt);
        // RotateGravity(step_dt);
-       fricition(step_dt);
-        updateObjects(step_dt);
+ 
+        
+   //     updateObjects(step_dt);
+       
+
+    
     }
 }
 
@@ -137,16 +177,16 @@ float return_rotation(){
     return rotation;
 }
  private:
-std::vector<particle> m_objects;
-
+CollisionGrid grid;
+sf::Vector2f world_size{100,100};
 sf::Vector2f m_gravity = {0,750.0f};
 sf::Vector2f Mass = {500,500};
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
 float m_frame_dt = 0.0f;
 float rotation = 0;
-
-
+float response_coef = 0.8f;
+float vel_coef = 0.0025f;
 void AttractToCenter(float strength,sf::Vector2f Posi,float dt)
 {
 //itterate through all objects
@@ -182,7 +222,6 @@ object_1.addVelocity(Accerlation,dt);
 }
  
 }
-
 
 void test_centr(float dt)
 {
@@ -277,7 +316,7 @@ void fricition(float dt)
 {
 
 for(auto& obj : m_objects){
-  sf::Vector2f Friction_force = -.999f *  obj.GetVelocity(dt);
+  sf::Vector2f Friction_force = -.99f *  obj.GetVelocity(dt);
 
   obj.accerlate(Friction_force);
 
@@ -287,15 +326,32 @@ for(auto& obj : m_objects){
 
 void drag_force(float dt){
 
+float C = 0.5;
+sf::Vector2f velo;   
     for(auto& obj : m_objects){
-        
+            
+            velo = obj.GetVelocity(dt);
+            velo.x -= 0.5f;
+            velo.y -= 0.5f;
+
+            float speed = sqrt(velo.x * velo.x + velo.y * velo.y);
+
+            float dragForceMagnitude = 0.5 * 2.5 * speed * speed * 0.5 * 0.5;
+
+            sf::Vector2f dragForceDirection = -velo / speed;
+
+    sf::Vector2f dragForce = dragForceMagnitude * dragForceDirection * C;
+    obj.accerlate(dragForce);
+
     }
 }
 void circukarMotion(float dt){
     
-
-    float test_x =  300 * sin(360 + m_time) - 300 * cos(360 + m_time);
-    float test_y = 300 * sin( 360 + m_time) + 300 * cos(360 + m_time);
+    float strength = 360;
+    float radius = 360;
+    float speed = 1.0;
+    float test_x =  strength * sin(radius + m_time * speed) + m_time - strength * cos(radius + m_time * speed );
+    float test_y = strength * sin( radius + m_time * speed ) + strength * cos(radius + m_time * speed);
 
  // angluar_accerlation = angluar_accerlation / rad ;
        const uint64_t object_count = m_objects.size();
@@ -346,5 +402,143 @@ void updateObjects(float dt)
         obj.updatePosition(dt);
     }
 }
+
+    void sovleCollision(){
+        
+    }
+    //QUAD TREE ADDS
+    void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx)
+    {
+
+        constexpr float response_coef = 10.0f;
+        constexpr float eps           = 0.0001f;
+        particle& obj_1 = m_objects[atom_1_idx];
+        particle& obj_2 = m_objects[atom_2_idx];
+     //   std::cout << "SOLVER CONTACT OBJECT 1 X:" << obj_1.pos.x << std::endl;
+     //   std::cout << "SOLVER CONTACT OBJECT 2 X:" << obj_2.pos.x << std::endl;
+        const sf::Vector2f o2_o1  = obj_1.pos - obj_2.pos;
+        const float dist2 = o2_o1.x * o2_o1.x + o2_o1.y * o2_o1.y;
+        std::cout << dist2 << std::endl;
+        if (dist2 < 1.0f && dist2 > eps) {
+            std::cout << "WORKING" << std::endl;
+            const float dist          = sqrt(dist2);
+            // Radius are all equal to 1.0f
+            const float delta  = response_coef * 0.5f * (1.0f - dist);
+            const sf::Vector2f col_vec = (o2_o1 / dist) * delta;
+            obj_1.pos += col_vec;
+            obj_2.pos -= col_vec;
+        }
+    }
+
+      void checkAtomCellCollisions(uint32_t atom_idx, const CollisionCell& c)
+    {
+
+        for (uint32_t i{0}; i < c.objects_count; ++i) {
+  //         std::cout << "OBJECT COUNT " <<c.objects[i] << std::endl;
+  //          std::cout << "ATOM IDX " << atom_idx << std::endl;
+            if(atom_idx != c.objects[i]){
+            solveContact(atom_idx, c.objects[i]);
+            }
+        }
+    }
+
+        void processCell(const CollisionCell& c, uint32_t index)
+    {
+        for (uint32_t i{0}; i < c.objects_count; ++i) {
+           
+            const uint32_t atom_idx = c.objects[i];
+     //      std::cout << "Checking atom index: " << atom_idx << std::endl;
+     //      std::cout << "C Object I: " << c.objects[i] << std::endl;
+
+
+            checkAtomCellCollisions(atom_idx, grid.data[index - 1]);        
+            checkAtomCellCollisions(atom_idx, grid.data[index]);
+            checkAtomCellCollisions(atom_idx, grid.data[index + 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height - 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height    ]);
+            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height + 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height - 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height    ]);
+            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height + 1]);
+        }
+    }
+
+    void checkGridData() {
+    for (int x = 0; x < 20; ++x) {
+        for (int y = 0; y < 20; ++y) {
+            // Access the CollisionCell at position (x, y) in the grid
+            const CollisionCell& cell = grid.data[x + y * grid.width];
+
+            // Print information about the cell
+            std::cout << "Cell (" << x << ", " << y << "):" << std::endl;
+            std::cout << "Objects count: " << cell.objects_count << std::endl;
+            std::cout << "Objects: ";
+            for (uint32_t i = 0; i < cell.objects_count; ++i) {
+                std::cout << cell.objects[i] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+}
+    void solveCollisions()
+    {
+        
+        uint32_t i{1};
+        for (auto& cell : grid.data) {
+     
+            processCell(cell, i);
+            ++i;
+        }
+    }
+
+void check_cell_collisions(CollisionCell& cell1, CollisionCell& cell2){
+    for(auto& obj_indx_1  : cell1.objects){
+        for(auto& obj_indx_2 : cell2.objects){
+            if(obj_indx_1 != obj_indx_2){
+            //    solveContact(obj_indx_1,obj_indx_2);
+            }
+        }
+    }
+
+}
+
+
+void find_collision_grid(){
+    for(int x{1}; x < grid.width - 1; x++){
+         for(int y{1}; y < grid.height - 1; y++){
+                auto& current_cell = grid.get(x,y);
+                    for(int dx{-1}; dx <= 1; ++dx){
+                         for(int dy{-1}; dy <= 1; ++dy){
+                            auto& other_cell = grid.get(x + dx, y + dy);
+                     
+                         //   check_cell_collisions(current_cell,other_cell);
+                     }  
+                }
+           }
+    }
+}
+
+
+    void addObjectsToGrid()
+    {
+        grid.clear();
+        // Safety border to avoid adding object outside the grid
+        uint32_t i{0};
+        for (const particle& obj : m_objects) {
+            if (obj.pos.x > 1.0f && obj.pos.x < world_size.x - 1.0f &&
+                obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f) {
+            //    std::cout << "SUCCESS";
+                grid.addAtom((int32_t)(obj.pos.x), (int32_t)(obj.pos.y), i);
+            }
+            ++i;
+        }
+    }
+
+    
 };
+
+
+
+
+
 
