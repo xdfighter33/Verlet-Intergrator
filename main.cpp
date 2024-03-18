@@ -15,7 +15,7 @@ float g = 0;
 static sf::Color getRainbow(float t, float velx, float vely)
 {
     // Adjust the frequency of the color oscillations for more variation
-    const float frequency = 0.5f;
+    const float frequency = 2.5f;
     
     // Apply sine and cosine functions with different frequencies and offsets
     const float r = sin(t * frequency + velx * 0.1f);
@@ -119,15 +119,15 @@ int main(){
 
     simulator.setSubsStepscount(2);
     simulator.setSimulationUpdateRate(frame_rate);
-    const float x_spawn =  100;
-    const float y_spawn =  0;
+    const float x_spawn =  500;
+    const float y_spawn =  500;
     
     sf::Vector2f object_spawn_position = {x_spawn, y_spawn};
-    const sf::Vector2f object_initial_speed = {1500.0f,50.0f};
+    const sf::Vector2f object_initial_speed = {1000.0f,50.0f};
     const float object_min_radius = 5.0f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .025f;
-    const uint32_t max_object_count = 1500;
+    const float spawn_delay = .00025f;
+    const uint32_t max_object_count = 500;
     const float max_angle = 360.0f;
     
 
@@ -174,8 +174,8 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
 
     auto & object = simulator.addObject(object_spawn_position, object_min_radius);
 
-    object.color = getRainbow(simulator.return_time(),250,300);
-    simulator.setObjectVelocity(object,object_initial_speed);
+    object.color = getRainbow(simulator.return_time(),100,300);
+  //  simulator.setObjectVelocity(object,object_initial_speed);
 
 }
 

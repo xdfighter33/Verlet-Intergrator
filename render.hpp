@@ -1,9 +1,13 @@
 #pragma once
 
 #include "physics.hpp"
+#include  "SFML/Graphics.hpp"
 class render
 {
     public:
+    sf::VertexArray object_va; 
+    sf::VertexArray world_va;
+    sf::Texture object_texture; 
     explicit
     render(sf::RenderTarget& target)
     :m_target{target}
@@ -13,7 +17,7 @@ class render
 void renders(const Simulator& simulator) const
 {
     sf::CircleShape circle{1.0f};
-    circle.setPointCount(99);
+    circle.setPointCount(50);
     circle.setOrigin(1.0f,1.0f);
     const auto& objects = simulator.getObject();
     for (const auto& obj : objects)
@@ -30,7 +34,6 @@ void renders(const Simulator& simulator) const
 
     
 }
-
 
 private:
 
