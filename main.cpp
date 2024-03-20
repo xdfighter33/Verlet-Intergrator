@@ -127,7 +127,7 @@ int main(){
     const float object_min_radius = 5.0f;
     const float object_max_radius = 25.0f;
     const float spawn_delay = .00025f;
-    const uint32_t max_object_count = 500;
+    const uint32_t max_object_count = 5;
     const float max_angle = 360.0f;
     
 
@@ -172,10 +172,10 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
     float time_spawn = clock.getElapsedTime().asSeconds();
      clock.restart();
 
-    auto & object = simulator.addObject(object_spawn_position, object_min_radius);
+    auto & object = simulator.addObject(sf::Vector2f(getRandomNumber(),getRandomNumber()), object_min_radius);
 
     object.color = getRainbow(simulator.return_time(),100,300);
-  //  simulator.setObjectVelocity(object,object_initial_speed);
+    simulator.setObjectVelocity(object,object_initial_speed);
 
 }
 

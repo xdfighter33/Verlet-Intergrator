@@ -43,6 +43,9 @@ struct Grid
 		return checkCoords(static_cast<int32_t>(v.x), static_cast<int32_t>(v.y));
 	}
 
+	bool checkCoords(sf::Vector2f pos) const {
+		return checkCoords(pos.x,pos.y);
+	}
 	bool checkCoords(int32_t x, int32_t y) const
 	{
 		return static_cast<int32_t>(x) > 0 && static_cast<int32_t>(x) < (width - 1) &&
@@ -60,6 +63,7 @@ struct Grid
 		return get(static_cast<int32_t>(v.x), static_cast<int32_t>(v.y));
 	}
 
+
 	template<typename Vec2Type>
 	const T& get(const Vec2Type& v) const
 	{
@@ -72,9 +76,18 @@ struct Grid
 		return getWrap(v.x, v.y);
 	}
 
+	const T& getWrap(sf::Vector2f pos)const {
+		return get(mod(pos.x,width), mod(pos.y,height));
+	}
 	const T& getWrap(int32_t x, int32_t y) const
 	{
 		return get(mod(x, width), mod(y, height));
+	}
+
+
+	T& get(sf::Vector2f pos)
+	{
+		return data[pos.y * width + pos.x];
 	}
 
 	T& get(int32_t x, int32_t y)
@@ -82,11 +95,17 @@ struct Grid
 		return data[y * width + x];
 	}
 
+
 	template<typename Vec2Type>
 	void set(const Vec2Type& v, const T& obj)
 	{
 		set(v.x, v.y, obj);
 	}
+
+	void set(sf::Vector2f v, const T& obj){
+		set(v,obj);
+	}
+
 
 	void set(int32_t x, int32_t y, const T& obj)
 	{

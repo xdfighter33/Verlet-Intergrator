@@ -20,9 +20,10 @@ struct CollisionCell{
     }
 
     bool isCellAtCapacity(const CollisionCell& cell)
-{
+    {
     return (cell.objects_count == CollisionCell::cell_capacity);
-}
+    }
+
 	void clear()
 	{
 		objects_count = 0u;
@@ -62,6 +63,15 @@ bool addAtom(uint32_t x, uint32_t y, uint32_t atom)
     return true;
 }
 
+bool addAtom(sf::Vector2f pos, uint32_t atom){
+
+    const uint32_t id = pos.y * width + pos.x;
+
+
+   // std::cout << "Position of object Y " << data[id].objects << "  " << pos.x << std::endl;
+    data[id].addAtom(atom);
+    return true; 
+}
 	void clear()
 	{   
      

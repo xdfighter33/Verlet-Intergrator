@@ -127,10 +127,9 @@ void update()
     
          addObjectsToGrid();
         //checkCollsion(step_dt);
-        visualizeGrid(grid);
         solveCollisions();
             //    checkGridData();
-       //   applyRotatoionGravity(step_dt);
+          applyRotatoionGravity(step_dt);
          appplyConstraint(step_dt);
       fricition(step_dt);
       drag_force(step_dt);
@@ -439,19 +438,18 @@ void updateObjects(float dt)
 
 
      
-    //    std::cout << dist << std::endl;
         if (dist2 < min_dist * min_dist) {
-        //   std::cout << "WORKING" << std::endl;
+         //  std::cout << "WORKING" << std::endl;
     
             const float overlap = min_dist_squared - dist2;
-            const float delta  = .05 * response_coef * (10.0f - dist);
+            const float delta  = .5 * response_coef * (1.0f - dist);
             const sf::Vector2f col_vec = (o2_o1 / dist) * delta;
             const sf::Vector2f n     = v / dist;
             const float mass_ratio_1 = obj_1.radius / (obj_1.radius + obj_2.radius);
              const float mass_ratio_2 = obj_2.radius / (obj_1.radius + obj_2.radius);
 
-      //      obj_1.old_pos += col_vec;
-      //      obj_2.old_pos -=col_vec;
+            obj_1.pos += n;
+            obj_2.pos -= n;
         }
     }
 
@@ -460,8 +458,9 @@ void updateObjects(float dt)
 
         for (uint32_t i{0}; i < c.objects_count; ++i) {
 
+           
             solveContact(atom_idx, c.objects[i]);
-        
+            
         }
     }
 
@@ -473,8 +472,9 @@ void updateObjects(float dt)
      //      std::cout << "Checking atom index: " << atom_idx << std::endl;
      //      std::cout << "C Object I: " << c.objects[i] << std::endl;
 
-            checkAtomCellCollisions(atom_idx, grid.data[index]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - 1]);        
+    
+            checkAtomCellCollisions(atom_idx, grid.data[index - 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index]);        
             checkAtomCellCollisions(atom_idx, grid.data[index + 1]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height - 1]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height    ]);
@@ -549,8 +549,8 @@ void find_collision_grid(){
         for (const particle& obj : m_objects) {
             if (obj.pos.x > 1.0f && obj.pos.x < world_size.x - 1.0f &&
                 obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f) {
-            //    std::cout << "SUCCESS";
-                grid.addAtom((int32_t)(obj.pos.x), (int32_t)(obj.pos.y), i);
+               // std::cout << "SUCCESS \n";
+                grid.addAtom(obj.pos, i);
             }
             ++i;
         }
