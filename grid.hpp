@@ -11,9 +11,13 @@ private:
     float distance_check = 5;
     int width = (max - min) / cell_size;
     int grid_cell;
+    int buckets = width * width;
     std::unordered_map< int, std::vector<sf::Vector2f>> grids;
+
+    
 public: 
    
+
     void set_grid_cell(int x, int y){
 
         grid_cell = floor(x/cell_size) / floor(y/cell_size) * width;
@@ -44,6 +48,13 @@ public:
         grids.clear();
     }
   
+    //Calcualte the adjacent cells 
+    void cell_in_range(){
+
+
+        
+    }
+
 
     //Test function 
     void print_buckets() {
@@ -55,4 +66,9 @@ public:
         }
     }
 
+    const std::unordered_map<int, std::vector<sf::Vector2f>>& getGrids()  {
+        return grids;
+    }
+
+    
 };
