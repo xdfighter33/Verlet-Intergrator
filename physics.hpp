@@ -126,12 +126,13 @@ void update()
  
     
          addObjectsToGrid();
-        //checkCollsion(step_dt);
-        solveCollisions();
+         addObjToGrid();
+      checkCollsion(step_dt);
+    AttractToCenter(2,sf::Vector2f(250,250),step_dt);
             //    checkGridData();
-          applyRotatoionGravity(step_dt);
+        //  applyRotatoionGravity(step_dt);
          appplyConstraint(step_dt);
-      fricition(step_dt);
+   //   fricition(step_dt);
       drag_force(step_dt);
 
     updateObjects(step_dt);
@@ -173,6 +174,8 @@ float return_rotation(){
 }
  private:
 CollisionGrid grid;
+SpatialHashing grid_struct;
+
 sf::Vector2f world_size{100,100};
 sf::Vector2f m_gravity = {0,750.0f};
 sf::Vector2f Mass = {500,500};
@@ -409,7 +412,7 @@ void updateObjects(float dt)
     //gravity is programed into this function
     for (auto&  obj : m_objects)
     {   
-        obj.accerlate(m_gravity);
+     //  obj.accerlate(m_gravity);
         obj.updatePosition(dt);
     }
 }
@@ -556,11 +559,40 @@ void find_collision_grid(){
         }
     }
 
+    void addObjToGrid(){
+        
+        grid_struct.clear();
+          for (const particle& obj : m_objects) {
+            if (obj.pos.x > 1.0f && obj.pos.x < world_size.x - 1.0f &&
+                obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f){
+
+                    grid_struct.add_object(obj.pos);
+                }
+          
+           }
+        grid_struct.print_buckets();
+     
+    }
+
+
+    void check_spatial_collision(float dt){
+        
+    for(auto& pairs : grid_struct.getGrids()){
+
+    auto& objects_in_grid = pairs.second;    
+
+        for(size_t i  = 0; i < objects_in_grid.size(); i++){
+             for(size_t j = i + 1; j < objects_in_grid.size(); ++j)   
+             {
+                
+             }
+
+        }         
     
+    }
+    
+    }
 };
-
-
-
 
 
 
