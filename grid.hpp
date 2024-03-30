@@ -13,8 +13,7 @@ private:
     int grid_cell;
     int buckets = width * width;
     std::unordered_map< int, std::vector<sf::Vector2f>> grids;
-
-    
+    std::vector<uint32_t> atom_idx;
 public: 
    
 
@@ -31,9 +30,10 @@ public:
     }
 
 
-    void add_object(sf::Vector2f test){
+    void add_object(sf::Vector2f test,uint32_t idx){
         set_grid_cell(test);
-            
+        
+        atom_idx.push_back(idx);
         grids[grid_cell].push_back(test);
 
     }   
@@ -46,6 +46,7 @@ public:
             pairs.second.clear();
         }
         grids.clear();
+     //   atom_idx.clear();
     }
   
     //Calcualte the adjacent cells 
@@ -64,6 +65,8 @@ public:
                 std::cout << "  " << obj.x << ", " << obj.y << std::endl;
             }
         }
+
+        
     }
 
     const std::unordered_map<int, std::vector<sf::Vector2f>>& getGrids()  {

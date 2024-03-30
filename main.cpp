@@ -172,7 +172,7 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
     float time_spawn = clock.getElapsedTime().asSeconds();
      clock.restart();
 
-    auto & object = simulator.addObject(sf::Vector2f(getRandomNumber(),getRandomNumber()), object_min_radius);
+    auto & object = simulator.addObject(object_spawn_position, object_min_radius);
 
     object.color = getRainbow(simulator.return_time(),100,300);
     simulator.setObjectVelocity(object,object_initial_speed);

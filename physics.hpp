@@ -13,6 +13,8 @@ struct particle {
     sf::Vector2f old_pos;
     sf::Vector2f accel = {0,0};
     sf::Color color = sf::Color::White;
+
+    //Grid index 
     uint32_t index;
    particle() : index(0) {}
 
@@ -125,7 +127,7 @@ void update()
     {
  
     
-         addObjectsToGrid();
+    //     addObjectsToGrid();
          addObjToGrid();
       checkCollsion(step_dt);
     AttractToCenter(2,sf::Vector2f(250,250),step_dt);
@@ -562,13 +564,14 @@ void find_collision_grid(){
     void addObjToGrid(){
         
         grid_struct.clear();
+        uint32_t i{ 0 };
           for (const particle& obj : m_objects) {
             if (obj.pos.x > 1.0f && obj.pos.x < world_size.x - 1.0f &&
                 obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f){
 
-                    grid_struct.add_object(obj.pos);
+                    grid_struct.add_object(obj.pos,i);
                 }
-          
+            ++i;
            }
         grid_struct.print_buckets();
      
