@@ -13,14 +13,20 @@ struct particle {
     sf::Vector2f old_pos;
     sf::Vector2f accel = {0,0};
     sf::Color color = sf::Color::White;
-
-    //Grid index 
     uint32_t index;
    particle() : index(0) {}
 
     particle(sf::Vector2f position_, float radius_)
     : pos{position_}
     , index(0)
+    , old_pos{position_}
+    ,accel{0.0f,0.0f}
+    ,radius{radius_}
+{}
+
+    particle(sf::Vector2f position_, float radius_, int idx_)
+    : pos{position_}
+    , index(idx_)
     , old_pos{position_}
     ,accel{0.0f,0.0f}
     ,radius{radius_}
@@ -40,7 +46,9 @@ void updatePosition(float dt)
     accel = {};
 }
 
-
+void set_obx_idx(uint32_t id){
+index = id;
+}
 void accerlate(sf::Vector2f force)
 {
     accel+= force;
@@ -95,9 +103,18 @@ std::vector<particle> m_objects;
 
 
 
+particle& addObject(sf::Vector2f position, float radius, float idx){
+
+    particle newParticle(position, radius,idx);
+    m_objects.push_back(newParticle);
+    return m_objects.back();
+}
+
 
 particle& addObject(sf::Vector2f position, float radius)
 {
+
+
     particle newParticle(position, radius);
     m_objects.push_back(newParticle);
     return m_objects.back();
@@ -127,7 +144,7 @@ void update()
     {
  
     
-    //     addObjectsToGrid();
+         addObjectsToGrid();
          addObjToGrid();
       checkCollsion(step_dt);
     AttractToCenter(2,sf::Vector2f(250,250),step_dt);
@@ -564,17 +581,18 @@ void find_collision_grid(){
     void addObjToGrid(){
         
         grid_struct.clear();
-        uint32_t i{ 0 };
+        uint32_t i{0};
           for (const particle& obj : m_objects) {
             if (obj.pos.x > 1.0f && obj.pos.x < world_size.x - 1.0f &&
                 obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f){
 
-                    grid_struct.add_object(obj.pos,i);
+                    grid_struct.add_object(obj.pos,obj.index);
                 }
-            ++i;
+          i++;
            }
-        grid_struct.print_buckets();
-     
+       // grid_struct.print_buckets();
+       // grid_struct.print_atom_idx();
+
     }
 
 
