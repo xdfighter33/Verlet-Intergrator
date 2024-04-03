@@ -46,7 +46,7 @@ public:
             pairs.second.clear();
         }
         grids.clear();
-     //   atom_idx.clear();
+        atom_idx.clear();
     }
   
     //Calcualte the adjacent cells 
@@ -66,9 +66,24 @@ public:
             }
         }
 
+       std::cout << atom_idx.size() << std::endl;
+
         
     }
 
+
+    void print_atom_idx(){
+
+        for(auto& obj : atom_idx){
+            std::cout << obj << std::endl;
+        }
+
+
+    }
+
+    void return_max_size(){
+     std::cout << "size of the atoms is " << atom_idx.size() << std::endl;
+    }
     const std::unordered_map<int, std::vector<sf::Vector2f>>& getGrids()  {
         return grids;
     }
