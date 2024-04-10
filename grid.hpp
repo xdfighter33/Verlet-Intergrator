@@ -12,6 +12,7 @@ private:
     int width = (max - min) / cell_size;
     int grid_cell;
     int buckets = width * width;
+    float conversion_factor = float(1) / 10000;
     std::unordered_map< int, std::vector<sf::Vector2f>> grids;
     std::vector<uint32_t> atom_idx;
 public: 
@@ -19,16 +20,18 @@ public:
 
     void set_grid_cell(int x, int y){
 
-        grid_cell = floor(x/cell_size) / floor(y/cell_size) * width;
+        grid_cell = floor(x/ cell_size )  / floor (y/ cell_size ) * width;
     }
 
 
 
     void set_grid_cell(sf::Vector2f pos){
+     //   grid_cell = floor(pos.x / cell_size) + floor(pos.y / cell_size) * width; 
 
-        grid_cell = floor(pos.x/cell_size) / floor(pos.y/cell_size) * width;
+        grid_cell = (pos.x * conversion_factor) + (pos.y * conversion_factor) * width;
     }
 
+  
 
     void add_object(sf::Vector2f test,uint32_t idx){
         set_grid_cell(test);
@@ -46,7 +49,8 @@ public:
             pairs.second.clear();
         }
         grids.clear();
-        atom_idx.clear();
+
+        std::vector<uint32_t>().swap(atom_idx);
     }
   
     //Calcualte the adjacent cells 
@@ -62,11 +66,10 @@ public:
         for (const auto& pair : grids) {
             std::cout << "Bucket " << pair.first << " contains " << pair.second.size() << " objects:" << std::endl;
             for (const auto& obj : pair.second) {
-                std::cout << "  " << obj.x << ", " << obj.y << std::endl;
+                std::cout << getObjectID(sf::Vector2f(obj.x,obj.y)) << "  " << obj.x << ", " << obj.y << std::endl;
             }
         }
 
-       std::cout << atom_idx.size() << std::endl;
 
         
     }
@@ -84,9 +87,23 @@ public:
     void return_max_size(){
      std::cout << "size of the atoms is " << atom_idx.size() << std::endl;
     }
+
+
     const std::unordered_map<int, std::vector<sf::Vector2f>>& getGrids()  {
         return grids;
     }
 
+
+    uint32_t getObjectID(const sf::Vector2f& pos) {
+    set_grid_cell(pos);
+    const std::vector<sf::Vector2f>& bucket = grids[grid_cell];
+    const auto& iter = std::find(bucket.begin(), bucket.end(), pos);
+    if (iter != bucket.end()) {
+        size_t index = std::distance(bucket.begin(), iter);
+        return atom_idx[index];
     
+        }
+        
+};
+
 };
