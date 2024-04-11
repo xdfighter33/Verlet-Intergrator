@@ -12,8 +12,8 @@ private:
     int width = (max - min) / cell_size;
     int grid_cell;
     int buckets = width * width;
-    float conversion_factor = float(1) / 10000;
-    std::unordered_map< int, std::vector<sf::Vector2f>> grids;
+    float conversion_factor = float(1) / cell_size;
+    std::unordered_map< int, std::vector<std::pair<sf::Vector2f, uint32_t>>> grids;
     std::vector<uint32_t> atom_idx;
 public: 
    
@@ -37,7 +37,7 @@ public:
         set_grid_cell(test);
         
         atom_idx.push_back(idx);
-        grids[grid_cell].push_back(test);
+        grids[grid_cell].emplace_back(test,idx);
 
     }   
     
@@ -62,17 +62,14 @@ public:
 
 
     //Test function 
-    void print_buckets() {
-        for (const auto& pair : grids) {
-            std::cout << "Bucket " << pair.first << " contains " << pair.second.size() << " objects:" << std::endl;
-            for (const auto& obj : pair.second) {
-                std::cout << getObjectID(sf::Vector2f(obj.x,obj.y)) << "  " << obj.x << ", " << obj.y << std::endl;
-            }
+void print_buckets() {
+    for (const auto& pair : grids) {
+        std::cout << "Bucket " << pair.first << " contains " << pair.second.size() << " objects:" << std::endl;
+        for (const auto& obj_pair : pair.second) {
+            std::cout << obj_pair.second << " " << obj_pair.first.x << ", " << obj_pair.first.y << std::endl;
         }
-
-
-        
     }
+}
 
 
     void print_atom_idx(){
@@ -89,21 +86,24 @@ public:
     }
 
 
-    const std::unordered_map<int, std::vector<sf::Vector2f>>& getGrids()  {
+    const std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>>& getGrids()  {
         return grids;
     }
 
-
-    uint32_t getObjectID(const sf::Vector2f& pos) {
+    //ISSUE IS COMING FROM GET ATOM_IDX IS DIFFERENT THAN ACTUAL VECTOR OF OBJECTS 
+    // THIS JUST ITEIRATES THROUGH THE OBJECTID OF THE FIRST INSTANCE 
+uint32_t getObjectID(const sf::Vector2f& pos) {
     set_grid_cell(pos);
-    const std::vector<sf::Vector2f>& bucket = grids[grid_cell];
-    const auto& iter = std::find(bucket.begin(), bucket.end(), pos);
+    const auto& bucket = grids[grid_cell];
+    const auto& iter = std::find_if(bucket.begin(), bucket.end(), [&pos](const std::pair<sf::Vector2f, uint32_t>& pair) {
+        return pair.first == pos;
+    });
+
     if (iter != bucket.end()) {
-        size_t index = std::distance(bucket.begin(), iter);
-        return atom_idx[index];
-    
-        }
-        
+        return iter->second;
+    }
+
+    return 0; // Return 0 if the position is not found (or any other appropriate value)
 };
 
 };

@@ -51,7 +51,7 @@ index = id;
 }
 void accerlate(sf::Vector2f force)
 {
-    accel+= force;
+    accel += force;
 }
 
 void setVelo(sf::Vector2f v, float dt)
@@ -73,6 +73,11 @@ sf::Vector2f getPos()
 sf::Vector2f GetVelocity(float dt)
 {
     return(pos - old_pos) / dt;
+}
+
+uint32_t return_atom_idx(){
+
+    return index;
 }
 };
 
@@ -102,15 +107,17 @@ std::vector<particle> m_objects;
 
 
 
-
+// add_object with the particle ID
 particle& addObject(sf::Vector2f position, float radius, float idx){
 
     particle newParticle(position, radius,idx);
+    
     m_objects.push_back(newParticle);
+
     return m_objects.back();
 }
 
-
+ 
 particle& addObject(sf::Vector2f position, float radius)
 {
 
@@ -144,21 +151,18 @@ void update()
     {
  
     
-         addObjectsToGrid();
          addObjToGrid();
       checkCollsion(step_dt);
-    AttractToCenter(2,sf::Vector2f(250,250),step_dt);
-            //    checkGridData();
-        //  applyRotatoionGravity(step_dt);
+    //  check_spatial_collision(step_dt);
+   // AttractToCenter(4,sf::Vector2f(250,250),step_dt);
+    //            checkGridData();
          appplyConstraint(step_dt);
-   //   fricition(step_dt);
-      drag_force(step_dt);
+         fricition(step_dt);
+  //    drag_force(step_dt);
 
     updateObjects(step_dt);
        // RotateGravity(step_dt);
  
-        
-   //     updateObjects(step_dt);
        
 
     
@@ -196,7 +200,7 @@ CollisionGrid grid;
 SpatialHashing grid_struct;
 
 sf::Vector2f world_size{100,100};
-sf::Vector2f m_gravity = {0,750.0f};
+sf::Vector2f m_gravity = {0,250.0f};
 sf::Vector2f Mass = {500,500};
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
@@ -315,7 +319,34 @@ void visualizeGrid(const CollisionGrid& grid) {
     }
 }
 
+void check_collision_grid(uint32_t idx1, uint32_t idx2){
+    const float response_coef = 1.7f;
+    particle& obj_1 = m_objects[idx1];
+    particle& obj_2 = m_objects[idx2];
 
+    const sf::Vector2f v = obj_1.pos - obj_2.pos;
+    
+    const float dist2 = v.x * v.x + v.y * v.y;
+    const float min_dit = obj_1.radius + obj_2.radius;
+
+
+    if(dist2 < min_dit * min_dit)
+    {
+                    const float        dist  = sqrt(dist2);
+                    const sf::Vector2f n     = v / dist;
+                    const float mass_ratio_1 = obj_1.radius / (obj_1.radius + obj_2.radius);
+                    const float mass_ratio_2 = obj_2.radius / (obj_1.radius + obj_2.radius);
+                    const float delta        = 0.5f * response_coef * (dist - min_dit);
+                    // Update positions
+                    obj_1.pos -= n * (mass_ratio_2 * delta);
+                    obj_2.pos += n * (mass_ratio_1 * delta);
+    } else {
+        return;
+    }
+
+
+
+}
 void checkCollsion(float dt)
 {
     const float response_coef = 1.7f;
@@ -431,7 +462,7 @@ void updateObjects(float dt)
     //gravity is programed into this function
     for (auto&  obj : m_objects)
     {   
-     //  obj.accerlate(m_gravity);
+       obj.accerlate(m_gravity);
         obj.updatePosition(dt);
     }
 }
@@ -573,28 +604,39 @@ void find_collision_grid(){
                 obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f) {
                // std::cout << "SUCCESS \n";
                 grid.addAtom(obj.pos, i);
+               
             }
+             std::cout << i << std::endl;
             ++i;
         }
     }
 
+
+    // Add spatial hashing function to the grid 
     void addObjToGrid(){
         
         grid_struct.clear();
-        uint32_t i{0};
-          for (const particle& obj : m_objects) {
+          for (const auto& obj : m_objects) {
             if (obj.pos.x > 1.0f && obj.pos.x < world_size.x - 1.0f &&
                 obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f){
-
                     grid_struct.add_object(obj.pos,obj.index);
-                }
-          i++;
+                }    
            }
-       // grid_struct.print_buckets();
-       // grid_struct.print_atom_idx();
 
+    grid_struct.print_buckets();
+    //   grid_struct.print_buckets();
+ 
     }
 
+    void test_to_add_to_grid(){
+
+        for(const auto& obj: m_objects){
+           std::cout <<  "Testing add object " << grid_struct.getObjectID(obj.pos) << std::endl;
+         //   grid_struct.print_atom_idx();
+        }
+
+
+    }
 
     void check_spatial_collision(float dt){
         
@@ -603,13 +645,22 @@ void find_collision_grid(){
     auto& objects_in_grid = pairs.second;    
 
         for(size_t i  = 0; i < objects_in_grid.size(); i++){
+
+            const auto& obj1 = objects_in_grid[i];
+            uint32_t obj1Idx = obj1.second;
+
+
              for(size_t j = i + 1; j < objects_in_grid.size(); ++j)   
              {
-                
+            const auto& obj2 = objects_in_grid[j];
+            uint32_t obj2Idx = obj2.second;
+
+                check_collision_grid(obj1Idx,obj2Idx);
              }
 
+
         }         
-    
+
     }
     
     }
