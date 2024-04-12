@@ -4,17 +4,16 @@
 class SpatialHashing{
 
 private:
-    int height;
-    float cell_size = 25; 
-    float min = 0;
-    float max = 100;
+    int height = 1000;
+    int cell_size = 80; 
+    int min = 0;
+    int max = 1000;
     float distance_check = 5;
     int width = (max - min) / cell_size;
     int grid_cell;
     int buckets = width * width;
-    float conversion_factor = float(1) / cell_size;
+    int conversion_factor = 1 / cell_size;
     std::unordered_map< int, std::vector<std::pair<sf::Vector2f, uint32_t>>> grids;
-    std::vector<uint32_t> atom_idx;
 public: 
    
 
@@ -25,18 +24,17 @@ public:
 
 
 
-    void set_grid_cell(sf::Vector2f pos){
-     //   grid_cell = floor(pos.x / cell_size) + floor(pos.y / cell_size) * width; 
-
-        grid_cell = (pos.x * conversion_factor) + (pos.y * conversion_factor) * width;
-    }
+void set_grid_cell(sf::Vector2f pos) {
+    int col = static_cast<int>(pos.x) / cell_size;
+    int row = static_cast<int>(pos.y) / cell_size;
+    grid_cell = row * width + col;
+}
 
   
 
     void add_object(sf::Vector2f test,uint32_t idx){
         set_grid_cell(test);
-        
-        atom_idx.push_back(idx);
+ 
         grids[grid_cell].emplace_back(test,idx);
 
     }   
@@ -49,8 +47,6 @@ public:
             pairs.second.clear();
         }
         grids.clear();
-
-        std::vector<uint32_t>().swap(atom_idx);
     }
   
     //Calcualte the adjacent cells 
@@ -72,26 +68,16 @@ void print_buckets() {
 }
 
 
-    void print_atom_idx(){
 
-        for(auto& obj : atom_idx){
-            std::cout << obj << std::endl;
-        }
-
-
-    }
-
-    void return_max_size(){
-     std::cout << "size of the atoms is " << atom_idx.size() << std::endl;
-    }
 
 
     const std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>>& getGrids()  {
         return grids;
     }
 
-    //ISSUE IS COMING FROM GET ATOM_IDX IS DIFFERENT THAN ACTUAL VECTOR OF OBJECTS 
-    // THIS JUST ITEIRATES THROUGH THE OBJECTID OF THE FIRST INSTANCE 
+
+//Object id uses a pair to POS and uint32_t IDX 
+
 uint32_t getObjectID(const sf::Vector2f& pos) {
     set_grid_cell(pos);
     const auto& bucket = grids[grid_cell];
@@ -105,5 +91,18 @@ uint32_t getObjectID(const sf::Vector2f& pos) {
 
     return 0; // Return 0 if the position is not found (or any other appropriate value)
 };
+
+ int getWidth(){
+    return width;
+ }
+const std::vector<std::pair<sf::Vector2f, uint32_t>>& getGrid(int index) {
+    if (index >= 0 && index < static_cast<int>(grids.size())) {
+        return grids[index];
+    } else {
+        // Handle out-of-bounds index
+        static const std::vector<std::pair<sf::Vector2f, uint32_t>> empty_vector;
+        return empty_vector;
+    }
+}
 
 };

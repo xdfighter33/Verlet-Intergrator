@@ -48,7 +48,7 @@ sf::Color velo_test(sf::Vector2f velo){
     return sf::Color(red,green,blue);
 }
 
-sf::Vector3f sphereColor(250.0f, 0.0f, 0.0f);
+//sf::Vector3f sphereColor(250.0f, 0.0f, 0.0f);
 
 
 std::string fragmentShaderPath = std::string(SHADER_DIR) + "/vert.frag";
@@ -119,15 +119,15 @@ int main(){
 
     simulator.setSubsStepscount(2);
     simulator.setSimulationUpdateRate(frame_rate);
-    const float x_spawn =  500;
-    const float y_spawn =  500;
+    const float x_spawn =  100;
+    const float y_spawn =  0;
     
-    sf::Vector2f object_spawn_position = {x_spawn, y_spawn};
-    const sf::Vector2f object_initial_speed = {1000.0f,50.0f};
-    const float object_min_radius = 5.0f;
+    sf::Vector2f object_spawn_position = {10, 10};
+    const sf::Vector2f object_initial_speed = {100.0f,00.0f};
+    const float object_min_radius = 3.0f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .00025f;
-    const uint32_t max_object_count = 5;
+    const float spawn_delay = .025f;
+    const uint32_t max_object_count = 1500;
     const float max_angle = 360.0f;
     
 
@@ -178,23 +178,23 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
 
     object.color = getRainbow(simulator.return_time(),100,300);
     simulator.setObjectVelocity(object,object_initial_speed);
-    std::cout << atom_id << std::endl;
     atom_id++;
+
+
 }
+std::cout << simulator.getObjectCount() << std::endl;
 
 
 //SHADER VARIABLES
 
 
 
-
 shader.setUniform("u_resolution", sf::Glsl::Vec2{ window.getSize() });
 shader.setUniform("u_time",simulator.return_time());
-shader.setUniform("sphereColor",sf::Glsl::Vec3(sphereColor));
+//shader.setUniform("sphereColor",sf::Glsl::Vec3(sphereColor));
 simulator.update();
 window.clear(sf::Color::Black);
 renders.renders(simulator);
-window.draw(shape,&shader);
 window.display();
 
 

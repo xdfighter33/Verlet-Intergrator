@@ -151,17 +151,14 @@ void update()
     {
  
     
-         addObjToGrid();
-      checkCollsion(step_dt);
-    //  check_spatial_collision(step_dt);
-   // AttractToCenter(4,sf::Vector2f(250,250),step_dt);
-    //            checkGridData();
-         appplyConstraint(step_dt);
-         fricition(step_dt);
-  //    drag_force(step_dt);
-
+    addObjToGrid();
+   // checkCollsion(step_dt);
+    check_spatial_collision();
+    fricition(step_dt);
+    drag_force(step_dt);
+    appplyConstraint(step_dt);
     updateObjects(step_dt);
-       // RotateGravity(step_dt);
+  
  
        
 
@@ -200,7 +197,7 @@ CollisionGrid grid;
 SpatialHashing grid_struct;
 
 sf::Vector2f world_size{100,100};
-sf::Vector2f m_gravity = {0,250.0f};
+sf::Vector2f m_gravity = {0,1050.0f};
 sf::Vector2f Mass = {500,500};
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
@@ -320,7 +317,7 @@ void visualizeGrid(const CollisionGrid& grid) {
 }
 
 void check_collision_grid(uint32_t idx1, uint32_t idx2){
-    const float response_coef = 1.7f;
+    const float response_coef = 2.5f;
     particle& obj_1 = m_objects[idx1];
     particle& obj_2 = m_objects[idx2];
 
@@ -336,7 +333,7 @@ void check_collision_grid(uint32_t idx1, uint32_t idx2){
                     const sf::Vector2f n     = v / dist;
                     const float mass_ratio_1 = obj_1.radius / (obj_1.radius + obj_2.radius);
                     const float mass_ratio_2 = obj_2.radius / (obj_1.radius + obj_2.radius);
-                    const float delta        = 0.5f * response_coef * (dist - min_dit);
+                    const float delta        = 0.25f * response_coef * (dist - min_dit);
                     // Update positions
                     obj_1.pos -= n * (mass_ratio_2 * delta);
                     obj_2.pos += n * (mass_ratio_1 * delta);
@@ -409,9 +406,9 @@ sf::Vector2f velo;
 }
 void circukarMotion(float dt){
     
-    float strength = 360;
+    float strength = 170;
     float radius = 360;
-    float speed = 1.0;
+    float speed = 0.5;
     float test_x =  strength * sin(radius + m_time * speed) + m_time - strength * cos(radius + m_time * speed );
     float test_y = strength * sin( radius + m_time * speed ) + strength * cos(radius + m_time * speed);
 
@@ -463,7 +460,7 @@ void updateObjects(float dt)
     for (auto&  obj : m_objects)
     {   
        obj.accerlate(m_gravity);
-        obj.updatePosition(dt);
+      obj.updatePosition(dt);
     }
 }
  
@@ -484,7 +481,7 @@ void updateObjects(float dt)
     
         const sf::Vector2f o2_o1  =  obj_1.pos - obj_2.pos;
         const float dist2 = o2_o1.x * o2_o1.x + o2_o1.y * o2_o1.y;
-     const float min_dist_squared = (obj_1.radius + obj_2.radius) * (obj_1.radius + obj_2.radius);
+        const float min_dist_squared = (obj_1.radius + obj_2.radius) * (obj_1.radius + obj_2.radius);
 
     
             const float dist = sqrt(dist2);
@@ -623,8 +620,7 @@ void find_collision_grid(){
                 }    
            }
 
-    grid_struct.print_buckets();
-    //   grid_struct.print_buckets();
+ //  grid_struct.print_buckets();
  
     }
 
@@ -638,14 +634,13 @@ void find_collision_grid(){
 
     }
 
-    void check_spatial_collision(float dt){
+    void check_spatial_collision(){
         
     for(auto& pairs : grid_struct.getGrids()){
-
+    const int cell_index = pairs.first; 
     auto& objects_in_grid = pairs.second;    
-
+   
         for(size_t i  = 0; i < objects_in_grid.size(); i++){
-
             const auto& obj1 = objects_in_grid[i];
             uint32_t obj1Idx = obj1.second;
 
@@ -656,15 +651,42 @@ void find_collision_grid(){
             uint32_t obj2Idx = obj2.second;
 
                 check_collision_grid(obj1Idx,obj2Idx);
+
              }
 
 
         }         
 
+             for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) continue;
+
+                int neighbor_x = cell_index % grid_struct.getWidth() + dx;
+                int neighbor_y = cell_index / grid_struct.getWidth() + dy;
+
+                // Wrap around the grid boundaries
+                if (neighbor_x < 0) neighbor_x += grid_struct.getWidth();
+                if (neighbor_x >= grid_struct.getWidth()) neighbor_x -= grid_struct.getWidth();
+                if (neighbor_y < 0) neighbor_y += grid_struct.getWidth();
+                if (neighbor_y >= grid_struct.getWidth()) neighbor_y -= grid_struct.getWidth();
+
+                int neighbor_cell_index = neighbor_y * grid_struct.getWidth() + neighbor_x;
+
+                if (neighbor_cell_index >= 0 && neighbor_cell_index < grid_struct.getGrids().size()) {
+                    const auto& neighbor_objects = grid_struct.getGrid(neighbor_cell_index);
+                    for (const auto& obj1 : objects_in_grid) {
+                        uint32_t obj1IDX = obj1.second;
+                        for (const auto& obj2 : neighbor_objects) {
+                            uint32_t obj2IDX = obj2.second;
+                            if (obj1IDX != obj2IDX) {
+                                check_collision_grid(obj1IDX, obj2IDX);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    
     }
+
 };
-
-
-
