@@ -79,6 +79,7 @@ uint32_t return_atom_idx(){
 
     return index;
 }
+
 };
 
 
@@ -118,6 +119,20 @@ particle& addObject(sf::Vector2f position, float radius, float idx){
 }
 
  
+ void Add_all_objects(sf::Vector2f spawn_pos, float radius, uint32_t count){
+    for(int i = 0; i < count; i++){
+        
+        float off_set = 500 / i;
+        spawn_pos.x = spawn_pos.x + off_set;
+       // spawn_pos.y = spawn_pos.y + i;
+        auto& obj = addObject(spawn_pos,radius,i);
+        obj.set_color(sf::Color::Red);
+       // setObjectVelocity(obj,sf::Vector2f(100,100));
+
+    std::cout << "SUCCESS \n";
+    }
+ }
+
 particle& addObject(sf::Vector2f position, float radius)
 {
 
@@ -620,7 +635,7 @@ void find_collision_grid(){
                 }    
            }
 
- //  grid_struct.print_buckets();
+   grid_struct.print_buckets();
  
     }
 
