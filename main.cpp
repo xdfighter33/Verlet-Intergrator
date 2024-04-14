@@ -117,23 +117,23 @@ int main(){
 
     render renders{window};
 
-    simulator.setSubsStepscount(2);
+    simulator.setSubsStepscount(8);
     simulator.setSimulationUpdateRate(frame_rate);
     const float x_spawn =  100;
     const float y_spawn =  0;
     
     sf::Vector2f object_spawn_position = {10, 10};
-    const sf::Vector2f object_initial_speed = {100.0f,00.0f};
+    const sf::Vector2f object_initial_speed = {100.f,00.0f};
     const float object_min_radius = 3.0f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .025f;
-    const uint32_t max_object_count = 1500;
+    const float spawn_delay = .25f;
+    const uint32_t max_object_count = 2000;
     const float max_angle = 360.0f;
     
 
     sf::Color test(r,g,b);
     int atom_id = 0; 
-simulator.Add_all_objects(sf::Vector2f(0,799),object_min_radius,10);
+simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,1000);
 
 sf::Vector2f poz; 
 
@@ -176,16 +176,15 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
 
      clock.restart();
 
-//    auto & object = simulator.addObject(object_spawn_position, object_min_radius,atom_id);
+    auto & object = simulator.addObject(object_spawn_position, object_min_radius,atom_id);
 
 
-//    object.color = getRainbow(simulator.return_time(),100,300);
-//    simulator.setObjectVelocity(object,object_initial_speed);
+    object.color = getRainbow(simulator.return_time(),100,300);
+    simulator.setObjectVelocity(object,object_initial_speed);
     atom_id++;
 
 
 }
-std::cout << simulator.getObjectCount() << std::endl;
 }
 
 //SHADER VARIABLES

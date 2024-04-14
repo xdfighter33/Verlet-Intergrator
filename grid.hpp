@@ -5,7 +5,7 @@ class SpatialHashing{
 
 private:
     int height = 1000;
-    int cell_size = 80; 
+    int cell_size = 100; 
     int min = 0;
     int max = 1000;
     float distance_check = 5;
@@ -70,14 +70,13 @@ void print_buckets() {
 
 
 
-
+    //Return Grid 
     const std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>>& getGrids()  {
         return grids;
     }
 
 
 //Object id uses a pair to POS and uint32_t IDX 
-
 uint32_t getObjectID(const sf::Vector2f& pos) {
     set_grid_cell(pos);
     const auto& bucket = grids[grid_cell];
