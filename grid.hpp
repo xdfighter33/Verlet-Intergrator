@@ -5,7 +5,7 @@ class SpatialHashing{
 
 private:
     int height = 1000;
-    int cell_size = 100; 
+    int cell_size = 20; 
     int min = 0;
     int max = 1000;
     float distance_check = 5;
@@ -56,7 +56,14 @@ void set_grid_cell(sf::Vector2f pos) {
         
     }
 
+/* 
 
+
+Split cells by the number of threads
+Itierate through each grid per thread
+Get object Ids and pass into Collsion_Check 
+Collision_check(atom_idx1,atom_idx2)
+*/
     //Test function 
 void print_buckets() {
     for (const auto& pair : grids) {

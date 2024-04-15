@@ -3,10 +3,12 @@
 
 #include <vector>
 #include <thread>
+#include <future>
 #include <SFML/Graphics.hpp>
 #include "collisionCells.hpp"
 #include "tree.hpp"
 #include "grid.hpp"
+#include "thread.hpp"
 struct particle {
     float radius = 5.0f; 
 
@@ -128,7 +130,7 @@ particle& addObject(sf::Vector2f position, float radius, float idx){
        // spawn_pos.y = spawn_pos.y + i;
         auto& obj = addObject(spawn_pos,radius,i);
         obj.set_color(sf::Color::Red);
-       // setObjectVelocity(obj,sf::Vector2f(100,100));
+ //      setObjectVelocity(obj,sf::Vector2f(100,100));
 
     }
  }
@@ -168,12 +170,14 @@ void update()
     
     addObjToGrid();
     //checkCollsion(step_dt);
-   // check_spatial_collision();
-    multi_thread_check_spatial_collision();
-    fricition(step_dt);
-    drag_force(step_dt);
-    appplyConstraint(step_dt);
-    updateObjects(step_dt);
+  //  check_spatial_collision();
+   multi_thread_check_spatial_collision();
+
+ //   fricition(step_dt);
+ //   drag_force(step_dt);
+   appplyConstraint(step_dt);
+   updateObjects(step_dt);
+
   
  
        
@@ -336,16 +340,21 @@ void visualizeGrid(const CollisionGrid& grid) {
 }
 
 void check_collision_grid(uint32_t idx1, uint32_t idx2){
-    const float response_coef = 1.7f;
+
+    const float response_coef = 1.0f;
     particle& obj_1 = m_objects[idx1];
     particle& obj_2 = m_objects[idx2];
 
+
+    std::cout << idx1 << std::endl;
     const sf::Vector2f v = obj_1.pos - obj_2.pos;
     
     const float dist2 = v.x * v.x + v.y * v.y;
     const float min_dit = obj_1.radius + obj_2.radius;
 
     const float  min_dist_square = min_dit * min_dit;
+
+
     if(dist2 < min_dist_square)
     {
                     const float        dist  = sqrt(dist2);
@@ -354,9 +363,11 @@ void check_collision_grid(uint32_t idx1, uint32_t idx2){
                     const float mass_ratio_2 = obj_2.radius / (obj_1.radius + obj_2.radius);
                     const float delta        = 0.25f * response_coef * (dist - min_dit);
                     // Update positions
-                    std::lock_guard<std::mutex> lock(m_objectMutex);
+               //     std::lock_guard<std::mutex> lock(m_objectMutex);
                     obj_1.pos -= n * (mass_ratio_2 * delta);
                     obj_2.pos += n * (mass_ratio_1 * delta);
+
+      
     } else {
         return;
     }
@@ -483,7 +494,12 @@ void updateObjects(float dt)
       obj.updatePosition(dt);
     }
 }
- 
+
+void multi_updateObjects(float dt){
+
+
+
+}
     //QUAD TREE ADDS
     void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx)
     {
@@ -709,56 +725,47 @@ void find_collision_grid(){
     }
     }
 
+//  pass in GRID IDX of each item in the grid 
+
+
+//Passing in grid data with start and end 
+// each thread should look towards unorederd_maps  start - end using find 
+
+
 void multi_thread_check_spatial_collision(){
-        const auto& grids = grid_struct.getGrids();
-        const size_t num_threads = std::thread::hardware_concurrency();
 
 
-        // Break the grid by how many threads you have 
-        const size_t chunk_size = grids.size() / num_threads;
+    const auto& grids = grid_struct.getGrids();
+    const uint32_t grid_width = grid_struct.getWidth();
+    const uint32_t num_cells = grids.size();
 
 
-        std::vector<std::thread> threads;
+    std::vector<std::thread> threads;
+
+    for(auto& pairs : grid_struct.getGrids()){
+    const int cell_index = pairs.first; 
+    auto& objects_in_grid = pairs.second;    
+
+        for(int i{0}; i < objects_in_grid.size(); i++){
+            const auto& obj1 = objects_in_grid[i];
+            uint32_t obj1Idx = obj1.second;
 
 
-        auto it = grids.begin();
+             for(size_t j = i + 1; j < objects_in_grid.size(); ++j)   
+             {
+            const auto& obj2 = objects_in_grid[j];
+            uint32_t obj2Idx = obj2.second;
 
-        for(size_t i = 0; i < num_threads; i++ ){
-            auto start = it;
-            std::advance(it, chunk_size);
-            auto end = (i == num_threads - 1) ? grids.end() : it;
-                
-                threads.emplace_back([this, start, end, &grids]{
-                    
-                 for(auto it = start; it != end; ++it){
-                    const auto& pairs = *it;
+                 threads.push_back(std::thread(&Simulator::check_collision_grid, this, obj1Idx, obj2Idx));
 
-                    const int cell_index = pairs.first;
-                    auto& objects_in_grid = pairs.second;
-
-                    for(size_t j = 0; j < objects_in_grid.size(); j++){
-
-                        const auto& obj1 = objects_in_grid[j];
-                        uint32_t obj1Idx = obj1.second;
-
-                    for(size_t m = j + 1; m < objects_in_grid.size(); m++){
-                        const auto& obj2 = objects_in_grid[m];
-                        uint32_t obj2Idx = obj2.second;
-
-                        check_collision_grid(obj1Idx,obj2Idx);
-
-
-                         }
-                    }
-
-                 }
-
-                });
+             }
         }
+    }
 
-    for (auto& thread : threads) {
+
+    for(auto& thread : threads){
         thread.join();
     }
+}
 
-    }
 };

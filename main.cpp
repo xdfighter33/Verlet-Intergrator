@@ -4,6 +4,7 @@
 #include "physics.hpp"
 #include "render.hpp"
 #include "tree.hpp"
+#include "thread.hpp"
 const int window_width = 1000;
 const int window_height = 1000;
 
@@ -112,7 +113,6 @@ int main(){
 
 
 
-
     Simulator simulator{1000,1000};
 
     render renders{window};
@@ -122,18 +122,18 @@ int main(){
     const float x_spawn =  100;
     const float y_spawn =  0;
     
-    sf::Vector2f object_spawn_position = {10, 10};
-    const sf::Vector2f object_initial_speed = {100.f,00.0f};
+    sf::Vector2f object_spawn_position = {500, 100};
+    const sf::Vector2f object_initial_speed = {100.0,200.0f};
     const float object_min_radius = 3.0f;
     const float object_max_radius = 25.0f;
     const float spawn_delay = .25f;
-    const uint32_t max_object_count = 2000;
+    const uint32_t max_object_count = 500;
     const float max_angle = 360.0f;
     
 
     sf::Color test(r,g,b);
     int atom_id = 0; 
-simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,1000);
+simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,500);
 
 sf::Vector2f poz; 
 
