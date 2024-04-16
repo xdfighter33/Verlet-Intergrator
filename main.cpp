@@ -122,18 +122,18 @@ int main(){
     const float x_spawn =  100;
     const float y_spawn =  0;
     
-    sf::Vector2f object_spawn_position = {500, 100};
+    sf::Vector2f object_spawn_position = {20, 0};
     const sf::Vector2f object_initial_speed = {100.0,200.0f};
     const float object_min_radius = 3.0f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .25f;
-    const uint32_t max_object_count = 500;
+    const float spawn_delay = .0025f;
+    const uint32_t max_object_count = 3000;
     const float max_angle = 360.0f;
     
 
     sf::Color test(r,g,b);
     int atom_id = 0; 
-simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,500);
+simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,2050);
 
 sf::Vector2f poz; 
 
