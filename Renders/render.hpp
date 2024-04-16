@@ -1,7 +1,7 @@
 #pragma once
 
-#include "physics.hpp"
-#include  "SFML/Graphics.hpp"
+#include "Physics/physics.hpp"
+#include "SFML/Graphics.hpp"
 class render
 {
     public:

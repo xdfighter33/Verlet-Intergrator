@@ -5,10 +5,10 @@
 #include <thread>
 #include <future>
 #include <SFML/Graphics.hpp>
-#include "collisionCells.hpp"
-#include "tree.hpp"
-#include "grid.hpp"
-#include "thread.hpp"
+#include "Spatial_Hash/collisionCells.hpp"
+#include "Spatial_Hash/tree.hpp"
+#include "Spatial_Hash/grid.hpp"
+#include "Temp/thread.hpp"
 struct particle {
     float radius = 5.0f; 
 
@@ -494,6 +494,8 @@ void updateObjects(float dt)
     }
 }
 
+
+// Mutli threaded update_object 
 void Multi_updateObjects(float dt)
 {
     const size_t numObjects = m_objects.size();
@@ -519,7 +521,8 @@ void Multi_updateObjects(float dt)
                 auto& obj = m_objects[j];
                 obj.accerlate(m_gravity);
                 obj.updatePosition(dt);
-
+            
+            //World boundary put in function later 
             if(obj.getPos().y >= 800)
             {
                 obj.pos.y += -1;

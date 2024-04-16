@@ -1,10 +1,8 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <random>
-#include "physics.hpp"
-#include "render.hpp"
-#include "tree.hpp"
-#include "thread.hpp"
+#include "Physics/physics.hpp"
+#include "Renders/render.hpp"
 const int window_width = 1000;
 const int window_height = 1000;
 
@@ -133,7 +131,7 @@ int main(){
 
     sf::Color test(r,g,b);
     int atom_id = 0; 
-simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,2050);
+simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,1000);
 
 sf::Vector2f poz; 
 
