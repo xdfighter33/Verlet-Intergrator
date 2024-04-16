@@ -82,7 +82,27 @@ void print_buckets() {
         return grids;
     }
 
-
+    //Return half of the grid
+    //Using to test for two thread collision check 
+std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>> copyHalfMap(const std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>>& grids, bool firstHalf) {
+    std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>> halfMap;
+    
+    // Calculate the number of elements to copy (half of the original map)
+    size_t halfSize = grids.size() / 2;
+    
+    // Copy the desired half of the elements into the new map
+    auto it = grids.begin();
+    if (!firstHalf) {
+        std::advance(it, halfSize);
+    }
+    
+    for (size_t i = 0; i < halfSize; ++i) {
+        halfMap.insert(*it);
+        ++it;
+    }
+    
+    return halfMap;
+}
 //Object id uses a pair to POS and uint32_t IDX 
 uint32_t getObjectID(const sf::Vector2f& pos) {
     set_grid_cell(pos);
