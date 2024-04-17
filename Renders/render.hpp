@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Physics/physics.hpp"
+#include "../Physics/physics.hpp"
 #include "SFML/Graphics.hpp"
 class render
 {
