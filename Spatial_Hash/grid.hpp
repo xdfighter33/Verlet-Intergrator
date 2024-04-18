@@ -5,7 +5,7 @@ class SpatialHashing{
 
 private:
     int height = 1000;
-    int cell_size = 20; 
+    int cell_size = 70; 
     int min = 0;
     int max = 1000;
     float distance_check = 5;
@@ -21,7 +21,6 @@ public:
 
         grid_cell = floor(x/ cell_size )  / floor (y/ cell_size ) * width;
     }
-
 
 
 void set_grid_cell(sf::Vector2f pos) {

@@ -16,20 +16,13 @@ class Simulator {
 std::vector<particle> m_objects;
 
 
-
     public:
-  //  Simulator() = default;
-    
 	Simulator(uint32_t width, uint32_t height)
     : grid(width,height)
     , world_size((float)width,(float)height)
     {
         grid.clear();
     };
-
-
-
-  
 
 
 
@@ -46,16 +39,16 @@ particle& addObject(sf::Vector2f position, float radius, float idx){
     return m_objects.back();
 }
 
- 
+ //Add the amount of objects you eed 
  void Add_all_objects(sf::Vector2f spawn_pos, float radius, uint32_t count){
     for(int i = 0; i < count; i++){
         
         float off_set = 500 / i;
         spawn_pos.x = spawn_pos.x + off_set;
-        spawn_pos.y = spawn_pos.y - i;
+        spawn_pos.y = off_set;
         auto& obj = addObject(spawn_pos,radius,i);
         obj.set_color(sf::Color::Red);
- //      setObjectVelocity(obj,sf::Vector2f(100,100));
+       setObjectVelocity(obj,sf::Vector2f(100,100));
 
     }
  }
@@ -83,12 +76,39 @@ particle& addObject(sf::Vector2f position, float radius)
         return m_objects;
     }
 
+void update(float dt)
+{
+    m_time += m_frame_dt;
+
+    float step_dt = getStepDt();
+    const float sub_dt = dt / static_cast<float>(m_sub_steps);
+    for(uint32_t i{m_sub_steps}; i--;)
+    {
+ 
+    
+    addObjToGrid();
+    //checkCollsion(step_dt);
+  //  check_spatial_collision();
+   multi_thread_check_spatial_collision();
+
+  //  fricition(step_dt);
+  //  drag_force(step_dt);
+   Multi_updateObjects(step_dt);
+
+  
+ 
+       
+
+    
+    }
+}
 
 void update()
 {
     m_time += m_frame_dt;
 
     float step_dt = getStepDt();
+
     for(uint32_t i{m_sub_steps}; i--;)
     {
  
@@ -142,7 +162,7 @@ SpatialHashing grid_struct;
 
 std::mutex m_objectMutex;
 sf::Vector2f world_size{100,100};
-sf::Vector2f m_gravity = {0,1050.0f};
+sf::Vector2f m_gravity = {0,3050.0f};
 sf::Vector2f Mass = {500,500};
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
@@ -397,7 +417,7 @@ void appplyConstraint(float dt)
             {
                 object.pos.y += 1;
             }
-             if(object.getPos().x >= 950)
+             if(object.getPos().x >= 990)
             {
                 object.pos.x += -1;
             }
@@ -424,7 +444,7 @@ void updateObjects(float dt)
 void Multi_updateObjects(float dt)
 {
     const size_t numObjects = m_objects.size();
-    const size_t numThreads = 2;
+    const size_t numThreads = 4;
 
     std::vector<std::thread> threads;
     threads.reserve(numThreads);
@@ -446,7 +466,9 @@ void Multi_updateObjects(float dt)
                 auto& obj = m_objects[j];
                 obj.accerlate(m_gravity);
                 obj.updatePosition(dt);
-            
+                    sf::Vector2f frictionForce = -3.15f * obj.GetVelocity(dt);
+                obj.accerlate(frictionForce);
+
             //World boundary put in function later 
             if(obj.getPos().y >= 800)
             {
@@ -456,7 +478,7 @@ void Multi_updateObjects(float dt)
             {
                 obj.pos.y += 1;
             }
-             if(obj.getPos().x >= 950)
+             if(obj.getPos().x >= 970)
             {
                 obj.pos.x += -1;
             }
@@ -464,6 +486,7 @@ void Multi_updateObjects(float dt)
             {
                 obj.pos.x += 1;
             }
+
             }
         });
 
@@ -755,7 +778,7 @@ void check_hash_map_collisions(std::unordered_map< int, std::vector<std::pair<sf
 
 void multi_thread_check_spatial_collision(){
 
-    uint32_t num_of_threads = 2; 
+    uint32_t num_of_threads = 4; 
     const auto& grids = grid_struct.getGrids();
     const uint32_t grid_width = grid_struct.getWidth();
     const uint32_t num_cells = grids.size();

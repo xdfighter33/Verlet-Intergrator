@@ -35,6 +35,8 @@ void set_color(sf::Color Color){
 
 void updatePosition(float dt)
 {
+
+
     sf::Vector2f Vel = pos - old_pos;
     old_pos = pos;
     pos = pos + Vel + accel * dt * dt; 

@@ -115,28 +115,35 @@ int main(){
 
     render renders{window};
 
-    simulator.setSubsStepscount(8);
+    simulator.setSubsStepscount(10);
     simulator.setSimulationUpdateRate(frame_rate);
     const float x_spawn =  100;
     const float y_spawn =  0;
     
-    sf::Vector2f object_spawn_position = {20, 0};
-    const sf::Vector2f object_initial_speed = {100.0,200.0f};
-    const float object_min_radius = 3.0f;
+    sf::Vector2f object_spawn_position = {5, 10};
+    sf::Vector2f object_spawn_position2 = {5, 30};
+    const sf::Vector2f object_initial_speed = {100.0,0.0f};
+    const float object_min_radius = 12.0f;
     const float object_max_radius = 25.0f;
     const float spawn_delay = .0025f;
-    const uint32_t max_object_count = 3000;
+    const float spawn_delay2 = .0025f;
+    const uint32_t max_object_count = 1600;
+    const uint32_t max_object_count1 = 1600;
     const float max_angle = 360.0f;
     
 
     sf::Color test(r,g,b);
     int atom_id = 0; 
-simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,1000);
+//simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,5000);
 
 sf::Vector2f poz; 
 
 
     sf::Clock clock;
+    sf::Clock clock2;
+    sf::Clock global_time;
+
+    float time_for_next_object = 2.0f;
     while(window.isOpen()){
 
 
@@ -167,7 +174,7 @@ while(window.pollEvent(events)){
   
 poz = spawn_pos1(object_spawn_position,30,simulator.return_time(),max_angle);
 
-bool add_objects = false;
+bool add_objects = true;
 if(add_objects == true){
 if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElapsedTime(),spawn_delay) == true ){
     float time_spawn = clock.getElapsedTime().asSeconds();
@@ -180,10 +187,33 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
     object.color = getRainbow(simulator.return_time(),100,300);
     simulator.setObjectVelocity(object,object_initial_speed);
     atom_id++;
+}
+
+
+if (simulator.getObjectCount() < max_object_count1 &&  spawn_delayz(global_time.getElapsedTime(),time_for_next_object) == true && spawn_delayz(clock2.getElapsedTime(),spawn_delay2) == true ){
+    float time_spawn = clock2.getElapsedTime().asSeconds();
+
+     clock2.restart();
+
+    auto& object2 = simulator.addObject(object_spawn_position2,object_min_radius,atom_id);
+    object2.color = getRainbow(simulator.return_time(),100,300);
+    simulator.setObjectVelocity(object2,object_initial_speed);
+
+atom_id++;
+ 
+}
 
 
 }
-}
+    
+
+
+
+
+
+
+
+
 
 //SHADER VARIABLES
 
@@ -192,7 +222,7 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
 shader.setUniform("u_resolution", sf::Glsl::Vec2{ window.getSize() });
 shader.setUniform("u_time",simulator.return_time());
 //shader.setUniform("sphereColor",sf::Glsl::Vec3(sphereColor));
-simulator.update();
+simulator.update(60);
 window.clear(sf::Color::Black);
 renders.renders(simulator);
 window.display();
