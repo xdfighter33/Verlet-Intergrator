@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <vector>
 #include <thread>
 #include <future>
@@ -90,7 +91,7 @@ void update(float dt)
     //checkCollsion(step_dt);
   //  check_spatial_collision();
    multi_thread_check_spatial_collision();
-
+//   applyRotatoionGravity(step_dt);
   //  fricition(step_dt);
   //  drag_force(step_dt);
    Multi_updateObjects(step_dt);
@@ -307,7 +308,7 @@ void check_collision_grid(uint32_t idx1, uint32_t idx2){
                     const float mass_ratio_2 = obj_2.radius / (obj_1.radius + obj_2.radius);
                     const float delta        = 0.25f * response_coef * (dist - min_dit);
                     // Update positions
-                    std::lock_guard<std::mutex> lock(m_objectMutex);
+                    // std::lock_guard<std::mutex> lock(m_objectMutex);
                     obj_1.pos -= n * (mass_ratio_2 * delta);
                     obj_2.pos += n * (mass_ratio_1 * delta);
 
@@ -444,7 +445,7 @@ void updateObjects(float dt)
 void Multi_updateObjects(float dt)
 {
     const size_t numObjects = m_objects.size();
-    const size_t numThreads = 4;
+    const size_t numThreads = 5;
 
     std::vector<std::thread> threads;
     threads.reserve(numThreads);
@@ -782,9 +783,15 @@ void multi_thread_check_spatial_collision(){
     const auto& grids = grid_struct.getGrids();
     const uint32_t grid_width = grid_struct.getWidth();
     const uint32_t num_cells = grids.size();
+    
+    
+    //Split grid into 2's
     auto First_Half_grid = grid_struct.copyHalfMap(grids,true);
     auto Second_Half_grid = grid_struct.copyHalfMap(grids,false);
 
+
+    // Split grid into quarters 
+    // Prob should make this into a function 
     auto First_quarter_grid = grid_struct.copyHalfMap(First_Half_grid,true);
     auto Second_quarter_grid = grid_struct.copyHalfMap(First_Half_grid,false);
 
@@ -793,23 +800,54 @@ void multi_thread_check_spatial_collision(){
 
     std::vector<std::thread> threads;
 
-    threads.push_back(std::thread([this, &First_quarter_grid]() {
-    this->check_hash_map_collisions(First_quarter_grid);
+    std::vector<std::chrono::microseconds> thread_durations(num_of_threads);
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+
+
+    //Threads in use 
+    threads.push_back(std::thread([this, &First_quarter_grid, &thread_durations]() {
+
+     auto start = std::chrono::high_resolution_clock::now();
+    this->check_hash_map_collisions(First_quarter_grid);  
+    auto end = std::chrono::high_resolution_clock::now();
+    thread_durations[0] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);;
+    
 }));
-   threads.push_back(std::thread([this, &Second_quarter_grid](){
+   threads.push_back(std::thread([this, &Second_quarter_grid, &thread_durations](){
+    auto start = std::chrono::high_resolution_clock::now();
     this->check_hash_map_collisions(Second_quarter_grid);
+    auto end = std::chrono::high_resolution_clock::now();
+    thread_durations[1] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 }));
-    threads.push_back(std::thread([this, &Third_quarter_grid]() {
+    threads.push_back(std::thread([this, &Third_quarter_grid, &thread_durations]() {
+    auto start =  std::chrono::high_resolution_clock::now();
     this->check_hash_map_collisions(Third_quarter_grid);
+    auto end = std::chrono::high_resolution_clock::now();
+    thread_durations[2] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 }));
-   threads.push_back(std::thread([this, &Fourth_quarter_grid](){
+   threads.push_back(std::thread([this, &Fourth_quarter_grid, &thread_durations](){
+    auto start = std::chrono::high_resolution_clock::now();
     this->check_hash_map_collisions(Fourth_quarter_grid);
+    auto end = std::chrono::high_resolution_clock::now();
+    thread_durations[3] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 }));
 
 
     for(auto& thread : threads){
         thread.join();
     }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+    std::cout << "Multi-threaded execution time: " << total_duration.count() << " microseconds" << std::endl;
+
+    for (size_t i = 0; i < num_of_threads; ++i) {
+        std::cout << "Thread " << i << " execution time: " << thread_durations[i].count() << " microseconds" << std::endl;
+    }
 }
 
 };
+

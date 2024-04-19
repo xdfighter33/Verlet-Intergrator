@@ -96,7 +96,7 @@ int main(){
     
    if (!shader.loadFromFile(fragmentShaderPath, sf::Shader::Fragment))
     {
-        std::cerr << "Couldn't load vert shader\n";
+       std::cerr << "Couldn't load vert shader\n";
         return -1;
     }
 
@@ -123,12 +123,12 @@ int main(){
     sf::Vector2f object_spawn_position = {5, 10};
     sf::Vector2f object_spawn_position2 = {5, 30};
     const sf::Vector2f object_initial_speed = {100.0,0.0f};
-    const float object_min_radius = 12.0f;
+    const float object_min_radius = 3.0f;
     const float object_max_radius = 25.0f;
     const float spawn_delay = .0025f;
     const float spawn_delay2 = .0025f;
-    const uint32_t max_object_count = 1600;
-    const uint32_t max_object_count1 = 1600;
+    const uint32_t max_object_count = 2500;
+    const uint32_t max_object_count1 = 2500;
     const float max_angle = 360.0f;
     
 
@@ -181,10 +181,10 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
 
      clock.restart();
 
-    auto & object = simulator.addObject(object_spawn_position, object_min_radius,atom_id);
+ auto & object = simulator.addObject(object_spawn_position, object_min_radius,atom_id);
 
 
-    object.color = getRainbow(simulator.return_time(),100,300);
+   object.color = getRainbow(simulator.return_time(),100,300);
     simulator.setObjectVelocity(object,object_initial_speed);
     atom_id++;
 }
@@ -196,7 +196,7 @@ if (simulator.getObjectCount() < max_object_count1 &&  spawn_delayz(global_time.
      clock2.restart();
 
     auto& object2 = simulator.addObject(object_spawn_position2,object_min_radius,atom_id);
-    object2.color = getRainbow(simulator.return_time(),100,300);
+   object2.color = getRainbow(simulator.return_time(),100,300);
     simulator.setObjectVelocity(object2,object_initial_speed);
 
 atom_id++;
@@ -225,6 +225,7 @@ shader.setUniform("u_time",simulator.return_time());
 simulator.update(60);
 window.clear(sf::Color::Black);
 renders.renders(simulator);
+// renders.renders_texture(simulator);
 window.display();
 
 
@@ -233,10 +234,5 @@ window.display();
 }
 
 return 0;
-
-
 }
-
-
-
 

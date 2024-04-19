@@ -46,6 +46,8 @@ void updatePosition(float dt)
 void set_obx_idx(uint32_t id){
 index = id;
 }
+
+
 void accerlate(sf::Vector2f force)
 {
     accel += force;
