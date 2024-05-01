@@ -4,6 +4,7 @@
 #include <thread>
 #include <future>
 #include <SFML/Graphics.hpp>
+#include <line.hpp>
 #include "../Spatial_Hash/collisionCells.hpp"
 #include "../Spatial_Hash/tree.hpp"
 #include "../Spatial_Hash/grid.hpp"
@@ -15,14 +16,14 @@
 class Simulator {
 
 std::vector<particle> m_objects;
-
+std::vector<Line> m_objects_line;
 
     public:
 	Simulator(uint32_t width, uint32_t height)
     : grid(width,height)
     , world_size((float)width,(float)height)
     {
-        grid.clear();
+        grid_struct.clear();
     };
 
 
@@ -40,20 +41,7 @@ particle& addObject(sf::Vector2f position, float radius, float idx){
     return m_objects.back();
 }
 
- //Add the amount of objects you eed 
- void Add_all_objects(sf::Vector2f spawn_pos, float radius, uint32_t count){
-    for(int i = 0; i < count; i++){
-        
-        float off_set = 500 / i;
-        spawn_pos.x = spawn_pos.x + off_set;
-        spawn_pos.y = off_set;
-        auto& obj = addObject(spawn_pos,radius,i);
-        obj.set_color(sf::Color::Red);
-       setObjectVelocity(obj,sf::Vector2f(100,100));
-
-    }
- }
-
+// Add_object with no particle ID (No collsion with hash map)
 particle& addObject(sf::Vector2f position, float radius)
 {
 
@@ -62,6 +50,69 @@ particle& addObject(sf::Vector2f position, float radius)
     m_objects.push_back(newParticle);
     return m_objects.back();
 }
+
+
+
+// Add line object 
+Line& add_Line_Object(sf::Vector2f pos, float rot_speed, sf::Vector2f Size ){
+
+Line newLine(pos,rot_speed,Size);
+
+m_objects_line.push_back(newLine);
+
+
+return m_objects_line.back();
+
+}
+
+//Test function to add  center line with a line that stops at box constraint 
+void add_center_line_with_line(sf::Vector2f spawn_pos, sf::Vector2f Size, float speed)
+{
+
+
+auto& obj_line = add_Line_Object(spawn_pos,speed,Size);
+
+
+
+// Calculate size based on the box constraint
+// First get box constraints size
+// get the distance between center line and box constraint 
+
+sf::Vector2f distance;
+
+distance.x = spawn_pos.x * spawn_pos.x + box_constraint.x * box_constraint.x;
+distance.y = spawn_pos.y * spawn_pos.y + box_constraint.y * box_constraint.y;
+auto& line_segment = add_Line_Object(spawn_pos - sf::Vector2f(-5,-5),speed,sf::Vector2f(distance));
+}
+
+
+// Add center line to project
+void add_center_line(sf::Vector2f spawn_pos, sf::Vector2f Size, float speed)
+{
+
+
+auto& obj_line = add_Line_Object(spawn_pos,speed,Size);
+
+
+}
+
+
+ //Add the amount of objects you eed 
+ void Add_all_objects(sf::Vector2f spawn_pos, float radius, uint32_t count){
+    for(int i = 0; i < count; i++){
+        
+        float off_set =  500 / i;
+        float temp = std::clamp(i + 1 ,-500,0);
+        spawn_pos.x = spawn_pos.x + off_set;
+        spawn_pos.y -= box_constraint.y;
+        auto& obj = addObject(spawn_pos,radius,i);
+        obj.set_color(sf::Color::Blue);
+       setObjectVelocity(obj,sf::Vector2f(-5,0));
+
+    }
+ }
+
+
     void setObjectVelocity(particle& object, sf::Vector2f v)
     {
         object.setVelo(v, getStepDt());
@@ -76,7 +127,10 @@ particle& addObject(sf::Vector2f position, float radius)
     {
         return m_objects;
     }
-
+    const std::vector<Line>& getObjectLine() const 
+    {
+        return m_objects_line;
+    }
 void update(float dt)
 {
     m_time += m_frame_dt;
@@ -94,7 +148,7 @@ void update(float dt)
 //   applyRotatoionGravity(step_dt);
   //  fricition(step_dt);
   //  drag_force(step_dt);
-   Multi_updateObjects(step_dt);
+   Multi_updateConstraintObjects(step_dt);
 
   
  
@@ -121,7 +175,7 @@ void update()
 
   //  fricition(step_dt);
   //  drag_force(step_dt);
-   Multi_updateObjects(step_dt);
+   Multi_updateConstraintObjects(step_dt);
 
   
  
@@ -141,6 +195,11 @@ void setSubsStepscount(uint32_t sub_substeps)
     m_sub_steps = sub_substeps;
 }
 
+void setBoxConstraint(sf::Vector2f  dim){
+    box_constraint.x = dim.x;
+    box_constraint.y = dim.y;
+}
+
 float getStepDt() const{
     return m_frame_dt /static_cast<float>(m_sub_steps);
 }
@@ -148,6 +207,10 @@ float getStepDt() const{
 
 uint64_t getObjectCount() const{
     return m_objects.size();
+}
+
+sf::Vector2f getBoxConstraint() const {
+    return box_constraint;
 }
 
 void rotate_degrees(float degrees){
@@ -165,12 +228,17 @@ std::mutex m_objectMutex;
 sf::Vector2f world_size{100,100};
 sf::Vector2f m_gravity = {0,3050.0f};
 sf::Vector2f Mass = {500,500};
+sf::Vector2f box_constraint;
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
 float m_frame_dt = 0.0f;
 float rotation = 0;
 float response_coef = 0.8f;
 float vel_coef = 0.0025f;
+
+
+
+
 void AttractToCenter(float strength,sf::Vector2f Posi,float dt)
 {
 //itterate through all objects
@@ -380,6 +448,9 @@ sf::Vector2f velo;
 
     }
 }
+
+
+
 void circukarMotion(float dt){
     
     float strength = 170;
@@ -430,6 +501,18 @@ void appplyConstraint(float dt)
     }
 }
 
+
+//Updating m_objects_line
+void updateLObjects(float dt){
+    // Polar coordinates
+    // X = (r) * sin (theta angle)
+    // y = (r) * cos (theta angle)
+    for(auto& obj : m_objects_line){
+
+        obj.updatePosition(dt);
+    }
+
+}
 void updateObjects(float dt)
 {
     //gravity is programed into this function
@@ -443,6 +526,61 @@ void updateObjects(float dt)
 
 // Mutli threaded update_object 
 void Multi_updateObjects(float dt)
+{
+    const size_t numObjects = m_objects.size();
+    const size_t numThreads = std::thread::hardware_concurrency();
+
+    std::vector<std::thread> threads;
+    threads.reserve(numThreads);
+
+    size_t chunkSize = numObjects / numThreads;
+    size_t remainder = numObjects % numThreads;
+
+    size_t start = 0;
+    for (size_t i = 0; i < numThreads; ++i)
+    {
+        size_t end = start + chunkSize;
+        if (i < remainder)
+            ++end;
+
+        threads.emplace_back([this, start, end, dt]()
+        {
+            for (size_t j = start; j < end; ++j)
+            {
+                auto& obj = m_objects[j];
+                obj.accerlate(m_gravity);
+                obj.updatePosition(dt);
+                sf::Vector2f frictionForce = -5.15f * obj.GetVelocity(dt);
+                obj.accerlate(frictionForce);
+
+            //World boundary put in function later 
+            if(obj.getPos().y >= 800)
+            {
+                obj.pos.y += -1;
+            }
+            if(obj.getPos().y <= 0){
+                obj.pos.y += 1;
+            }
+             if(obj.getPos().x >= 970)
+            {
+                obj.pos.x += -1;
+            }
+             if(obj.getPos().x <= 25)
+            {
+                obj.pos.x += 1;
+            }
+
+            }
+        });
+
+        start = end;
+    }
+
+    for (auto& thread : threads)
+        thread.join();
+}
+
+void Multi_updateConstraintObjects(float dt)
 {
     const size_t numObjects = m_objects.size();
     const size_t numThreads = 5;
@@ -467,28 +605,29 @@ void Multi_updateObjects(float dt)
                 auto& obj = m_objects[j];
                 obj.accerlate(m_gravity);
                 obj.updatePosition(dt);
-                    sf::Vector2f frictionForce = -3.15f * obj.GetVelocity(dt);
+
+                // Apply friciton force
+                sf::Vector2f frictionForce = -1.15f * obj.GetVelocity(dt);
                 obj.accerlate(frictionForce);
 
-            //World boundary put in function later 
-            if(obj.getPos().y >= 800)
-            {
-                obj.pos.y += -1;
-            }
-            if(obj.getPos().y <= 0)
-            {
-                obj.pos.y += 1;
-            }
-             if(obj.getPos().x >= 970)
-            {
-                obj.pos.x += -1;
-            }
-             if(obj.getPos().x <= 25)
-            {
-                obj.pos.x += 1;
-            }
 
-            }
+            //World boundary put in function later - Use bounding_box 
+            float margin = 2.0f; 
+            sf::Vector2f v = getBoxConstraint() - obj.pos;
+            float dist = sqrt(v.x * v.x + v.y * v.y);
+                 if (obj.pos.x > getBoxConstraint().x - margin) {
+                    obj.pos.x = getBoxConstraint().x - margin;
+                } 
+                 else if (obj.pos.x < margin) {
+                    obj.pos.x = margin;
+                }
+                if (obj.pos.y > getBoxConstraint().y - margin) {
+                    obj.pos.y = getBoxConstraint().y - margin;
+                } else if (obj.pos.y < margin) {
+                    obj.pos.y =  margin;
+                }
+
+        }
         });
 
         start = end;
@@ -497,6 +636,7 @@ void Multi_updateObjects(float dt)
     for (auto& thread : threads)
         thread.join();
 }
+
     //QUAD TREE ADDS
     void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx)
     {
@@ -550,7 +690,7 @@ void Multi_updateObjects(float dt)
         void processCell(const CollisionCell& c, uint32_t index)
     {
         for (uint32_t i{0}; i < c.objects_count; ++i) {
-           
+        
             const uint32_t atom_idx = c.objects[i];
      //      std::cout << "Checking atom index: " << atom_idx << std::endl;
      //      std::cout << "C Object I: " << c.objects[i] << std::endl;
@@ -644,15 +784,15 @@ void find_collision_grid(){
 
     // Add spatial hashing function to the grid 
     void addObjToGrid(){
-        
+
         grid_struct.clear();
           for (const auto& obj : m_objects) {
-            if (obj.pos.x > 1.0f && obj.pos.x < world_size.x - 1.0f &&
-                obj.pos.y > 1.0f && obj.pos.y < world_size.y - 1.0f){
+            if (obj.pos.x > 1.0f && obj.pos.x < getBoxConstraint().x - 1.0f &&
+                obj.pos.y > 1.0f && obj.pos.y < getBoxConstraint().y - 1.0f){
                     grid_struct.add_object(obj.pos,obj.index);
                 }    
            }
-
+  
   // grid_struct.print_buckets();
  
     }
@@ -728,6 +868,7 @@ void find_collision_grid(){
 //Passing in grid data with start and end 
 // each thread should look towards unorederd_maps  start - end using find 
 void check_hash_map_collisions(std::unordered_map< int, std::vector<std::pair<sf::Vector2f, uint32_t>>> grids){
+    m_objectMutex.lock();
     for(auto& pairs : grids){
         const int cell_index = pairs.first; 
         auto& objects_in_grid = pairs.second;
@@ -748,10 +889,10 @@ void check_hash_map_collisions(std::unordered_map< int, std::vector<std::pair<sf
          for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
                 if (dx == 0 && dy == 0) continue;
-
+               
                 int neighbor_x = cell_index % grid_struct.getWidth() + dx;
                 int neighbor_y = cell_index / grid_struct.getWidth() + dy;
-
+               
                 // Wrap around the grid boundaries
                 if (neighbor_x < 0) neighbor_x += grid_struct.getWidth();
                 if (neighbor_x >= grid_struct.getWidth()) neighbor_x -= grid_struct.getWidth();
@@ -775,10 +916,21 @@ void check_hash_map_collisions(std::unordered_map< int, std::vector<std::pair<sf
             }
         }
     }
+    m_objectMutex.unlock();
 }
+
+//using thread_pool to implement problem 
+// Call thread_pool 
+// Split the grid up to the amount of threads I want to set to the task
+/*
+Either this is set at the start of the function 
+or call it here to check the differnece between the threads 
+*/
 
 void multi_thread_check_spatial_collision(){
 
+
+    //Discord variable 
     uint32_t num_of_threads = 4; 
     const auto& grids = grid_struct.getGrids();
     const uint32_t grid_width = grid_struct.getWidth();
@@ -839,6 +991,8 @@ void multi_thread_check_spatial_collision(){
         thread.join();
     }
 
+    bool debug_thread_time = false;
+    if(debug_thread_time == true){
     auto end_time = std::chrono::high_resolution_clock::now();
     auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
@@ -846,6 +1000,104 @@ void multi_thread_check_spatial_collision(){
 
     for (size_t i = 0; i < num_of_threads; ++i) {
         std::cout << "Thread " << i << " execution time: " << thread_durations[i].count() << " microseconds" << std::endl;
+    }
+}
+}
+
+
+void thread_pool_collision() {
+    const auto& grids = grid_struct.getGrids();
+    const uint32_t num_cells = grids.size();
+
+    // Create a task queue
+    std::queue<std::pair<int, int>> taskQueue;
+
+    // Populate the task queue with cell ranges
+    int chunk_size = 15;
+    int num_chunks = (num_cells + chunk_size - 1) / chunk_size;
+    for (int i = 0; i < num_chunks; ++i) {
+        int start = i * chunk_size;
+        int end = std::min((i + 1) * chunk_size - 1, static_cast<int>(num_cells) - 1);
+        taskQueue.push({start, end});
+    }
+
+    // Create a mutex for synchronization
+    std::mutex queueMutex;
+
+    // Create worker threads
+    std::vector<std::thread> threads;
+    const uint32_t num_threads = 10;
+
+    for (uint32_t i = 0; i < num_threads; ++i) {
+        threads.emplace_back([this, &taskQueue, &queueMutex, &grids, num_cells]() {
+            while (true) {
+                std::pair<int, int> task;
+                {
+                    std::unique_lock<std::mutex> lock(queueMutex);
+                    if (taskQueue.empty()) {
+                        break;
+                    }
+                    task = taskQueue.front();
+                    taskQueue.pop();
+                }
+
+                // Process the task
+                for (int j = task.first; j <= task.second; ++j) {
+                    auto it = grids.find(j);
+                    if (it != grids.end()) {
+                        const auto& cell = it->second;
+                        for (const auto& obj1 : cell) {
+                            uint32_t obj1Idx = obj1.second;
+                            for (const auto& obj2 : cell) {
+                                uint32_t obj2Idx = obj2.second;
+                                if (obj1Idx < obj2Idx) {
+                                    check_collision_grid(obj1Idx, obj2Idx);
+                                }
+                            }
+                            // Check collisions with neighboring cells
+                            // ...
+                        }
+                    }
+                }
+            }
+
+            // Work stealing
+            while (true) {
+                std::pair<int, int> task;
+                {
+                    std::unique_lock<std::mutex> lock(queueMutex);
+                    if (taskQueue.empty()) {
+                        break;
+                    }
+                    task = taskQueue.front();
+                    taskQueue.pop();
+                }
+
+                // Process the stolen task
+                for (int j = task.first; j <= task.second; ++j) {
+                    auto it = grids.find(j);
+                    if (it != grids.end()) {
+                        const auto& cell = it->second;
+                        for (const auto& obj1 : cell) {
+                            uint32_t obj1Idx = obj1.second;
+                            for (const auto& obj2 : cell) {
+                                uint32_t obj2Idx = obj2.second;
+                                if (obj1Idx < obj2Idx) {
+                                    check_collision_grid(obj1Idx, obj2Idx);
+                                }
+                            }
+                            // Check collisions with neighboring cells
+                            // ...
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Join the threads
+    for (auto& thread : threads) {
+        thread.join();
     }
 }
 

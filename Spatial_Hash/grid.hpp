@@ -5,7 +5,7 @@ class SpatialHashing{
 
 private:
     int height = 1000;
-    int cell_size = 70; 
+    int cell_size = 100; 
     int min = 0;
     int max = 1000;
     float distance_check = 5;

@@ -10,6 +10,14 @@ float r = 0;
 float b = 230;
 float g = 0;
 
+     static sf::Color getRainbow(float t)
+    {
+        const float r = sin(t);
+        const float g = sin(t + 0.33f * 2.0f * M_PI_4);
+        const float b = sin(t + 0.66f * 2.0f * M_PI_4);
+        return sf::Color(255 * r * r, 255 * g * g, 255 * b * b);
+    }
+
 
 static sf::Color getRainbow(float t, float velx, float vely)
 {
@@ -110,7 +118,7 @@ int main(){
     auto shape = sf::RectangleShape{ sf::Vector2f{ window.getSize() } };
 
 
-
+   
     Simulator simulator{1000,1000};
 
     render renders{window};
@@ -120,61 +128,73 @@ int main(){
     const float x_spawn =  100;
     const float y_spawn =  0;
     
-    sf::Vector2f object_spawn_position = {5, 10};
-    sf::Vector2f object_spawn_position2 = {5, 30};
-    const sf::Vector2f object_initial_speed = {100.0,0.0f};
-    const float object_min_radius = 3.0f;
+    sf::Vector2f Box_constraint(500,750);
+    sf::Vector2f object_spawn_position = {20, 10};
+    sf::Vector2f object_spawn_position2 = {20,100};
+    const sf::Vector2f object_initial_speed = {1000.0,0.0f};
+    const float object_min_radius = 5.5f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .0025f;
-    const float spawn_delay2 = .0025f;
-    const uint32_t max_object_count = 2500;
-    const uint32_t max_object_count1 = 2500;
+    const float spawn_delay = .025f;
+    const float spawn_delay2 = .025f;
+    const uint32_t max_object_count = 5000;
+    const uint32_t max_object_count1 = 5000;
     const float max_angle = 360.0f;
-    
-
+    \
+//simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,2000);
     sf::Color test(r,g,b);
     int atom_id = 0; 
-//simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,5000);
 
 sf::Vector2f poz; 
+
+
 
 
     sf::Clock clock;
     sf::Clock clock2;
     sf::Clock global_time;
 
+    float angle = 5;
+simulator.add_center_line_with_line(sf::Vector2f(Box_constraint.x/2,Box_constraint.y / 2),sf::Vector2f{25,100},angle);
+    simulator.setBoxConstraint(Box_constraint);
+    bool add_objects = false;
     float time_for_next_object = 2.0f;
     while(window.isOpen()){
 
 
 
-sf::Event events{};
+sf::Event events;
 sf::Time clocks = clock.getElapsedTime();
 
-
-sf::RectangleShape line(sf::Vector2f(150, 5));
-
-line.setPosition(450,450);
 
 
 
 
 
 while(window.pollEvent(events)){
-    if (events.type == sf::Event::Closed || sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+    if (events.type == sf::Event::Closed)
     {
+            window.close();
+    }
+
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)){
             window.close();
     }
 
 
 
 
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
+        // add_objects = true;
+       angle += 100;
+
+    }
+
 
 }
   
 poz = spawn_pos1(object_spawn_position,30,simulator.return_time(),max_angle);
 
-bool add_objects = true;
+
 if(add_objects == true){
 if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElapsedTime(),spawn_delay) == true ){
     float time_spawn = clock.getElapsedTime().asSeconds();
@@ -184,9 +204,11 @@ if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElaps
  auto & object = simulator.addObject(object_spawn_position, object_min_radius,atom_id);
 
 
-   object.color = getRainbow(simulator.return_time(),100,300);
+   object.color =  getRainbow(simulator.return_time());
+   
+ //  object.color = getRainbow(simulator.return_time(),object.GetVelocity(simulator.getStepDt()).x,object.GetVelocity(simulator.getStepDt()).y);
     simulator.setObjectVelocity(object,object_initial_speed);
-    atom_id++;
+    atom_id++; 
 }
 
 
@@ -196,7 +218,7 @@ if (simulator.getObjectCount() < max_object_count1 &&  spawn_delayz(global_time.
      clock2.restart();
 
     auto& object2 = simulator.addObject(object_spawn_position2,object_min_radius,atom_id);
-   object2.color = getRainbow(simulator.return_time(),100,300);
+   object2.color = getRainbow(simulator.return_time());
     simulator.setObjectVelocity(object2,object_initial_speed);
 
 atom_id++;
@@ -219,13 +241,10 @@ atom_id++;
 
 
 
-shader.setUniform("u_resolution", sf::Glsl::Vec2{ window.getSize() });
-shader.setUniform("u_time",simulator.return_time());
-//shader.setUniform("sphereColor",sf::Glsl::Vec3(sphereColor));
+
 simulator.update(60);
 window.clear(sf::Color::Black);
 renders.renders(simulator);
-// renders.renders_texture(simulator);
 window.display();
 
 
