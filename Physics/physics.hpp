@@ -12,7 +12,6 @@
 #include "Particle.hpp"
 
 
-
 class Simulator {
 
 std::vector<particle> m_objects;
@@ -58,6 +57,7 @@ Line& add_Line_Object(sf::Vector2f pos, float rot_speed, sf::Vector2f Size ){
 
 Line newLine(pos,rot_speed,Size);
 
+newLine.set_Spin_rate(100);
 m_objects_line.push_back(newLine);
 
 
@@ -82,7 +82,17 @@ sf::Vector2f distance;
 
 distance.x = spawn_pos.x * spawn_pos.x + box_constraint.x * box_constraint.x;
 distance.y = spawn_pos.y * spawn_pos.y + box_constraint.y * box_constraint.y;
-auto& line_segment = add_Line_Object(spawn_pos - sf::Vector2f(-5,-5),speed,sf::Vector2f(distance));
+
+
+
+// Calculate said disntace 
+float box_constraint_x = sqrt(distance.x);
+float box_constraint_y = sqrt(distance.y);
+distance.x = 10;
+distance.y = box_constraint_y;
+
+
+auto& line_segment = add_Line_Object(spawn_pos,speed,sf::Vector2f(2,distance.y));
 }
 
 
@@ -139,8 +149,9 @@ void update(float dt)
     const float sub_dt = dt / static_cast<float>(m_sub_steps);
     for(uint32_t i{m_sub_steps}; i--;)
     {
+get_line_disance();
+rotate_all_lines(45);
  
-    
     addObjToGrid();
     //checkCollsion(step_dt);
   //  check_spatial_collision();
@@ -157,6 +168,8 @@ void update(float dt)
     
     }
 }
+
+
 
 void update()
 {
@@ -225,14 +238,14 @@ CollisionGrid grid;
 SpatialHashing grid_struct;
 
 std::mutex m_objectMutex;
-sf::Vector2f world_size{100,100};
+sf::Vector2f world_size;
 sf::Vector2f m_gravity = {0,3050.0f};
 sf::Vector2f Mass = {500,500};
 sf::Vector2f box_constraint;
 uint32_t m_sub_steps = 1;
 float m_time = 0.0f;
 float m_frame_dt = 0.0f;
-float rotation = 0;
+float rotation; 
 float response_coef = 0.8f;
 float vel_coef = 0.0025f;
 
@@ -313,6 +326,9 @@ object_1.setVelo(force,dt);
         }
     }
 }
+
+
+
 void applyRotatoionGravity(float dt)
 {
     float rotate = m_time;
@@ -583,7 +599,7 @@ void Multi_updateObjects(float dt)
 void Multi_updateConstraintObjects(float dt)
 {
     const size_t numObjects = m_objects.size();
-    const size_t numThreads = 5;
+    const size_t numThreads =  5;
 
     std::vector<std::thread> threads;
     threads.reserve(numThreads);
@@ -1101,5 +1117,75 @@ void thread_pool_collision() {
     }
 }
 
+
+// Line test functions
+
+void rotate_all_lines(float dt){
+
+    dt += dt;
+    for(auto& obj_line : m_objects_line){
+
+        obj_line.set_Spin_rate(dt);
+    }
+
+
+}
+
+void get_line_disance(){
+
+auto& line_seg = m_objects_line[0];
+
+auto& line = m_objects_line[1];
+sf::Vector2f spawn_pos = line_seg.getPos();
+sf::Vector2f distance;
+
+float cosAngle = cos(line.getRotation());
+float sinAngle = sin(line.getRotation());
+
+float new_world_size = world_size.y - box_constraint.y;
+
+
+float relativeX = box_constraint.x - spawn_pos.x;
+float relativeY = (box_constraint.y - spawn_pos.y);
+
+// Apply rotation to the relative position
+float rotatedX = relativeX * cosAngle - relativeY * sinAngle;
+float rotatedY = relativeY * sinAngle + relativeX * cosAngle;
+
+float newDistance = sqrt(rotatedX * rotatedX + rotatedY * rotatedY);
+
+distance.x = rotatedX;
+distance.y = rotatedY;
+
+
+
+// distance.x = ( spawn_pos.x * spawn_pos.x + box_constraint.x * box_constraint.x) ;
+// distance.y = ( spawn_pos.y * spawn_pos.y ) +  (box_constraint.y * box_constraint.y);
+
+
+// Find the hyptonuse of the triangle 
+// Get rotation of object
+//
+float temp_y = line.getRotation() * M_PI / 180;
+
+float t_y = relativeY / cos(temp_y);
+
+
+float t_x = t_y * sin(temp_y);
+
+
+
+
+ //line_seg.pos -= sf::Vector2f(0,5);
+ line.size = sf::Vector2f(5,t_y);
+
+ 
+}   
+
+
+void set_rotation(float rot){
+
+rotation = rot;
+}
 };
 

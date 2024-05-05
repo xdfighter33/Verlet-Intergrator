@@ -47,6 +47,7 @@ line.setSize(obj_line.size);
 line.setFillColor(sf::Color::Blue);
 line.setRotation(obj_line.rotation_speed);
 
+
 m_target.draw(line);
 }
 
@@ -79,7 +80,7 @@ void renders(const Simulator& simulator) const
         m_target.draw(circle);
     }
 
-render_line(simulator);
+// render_line(simulator);
     
 }
 

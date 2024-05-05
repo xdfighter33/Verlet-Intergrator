@@ -10,6 +10,8 @@ float r = 0;
 float b = 230;
 float g = 0;
 
+
+
      static sf::Color getRainbow(float t)
     {
         const float r = sin(t);
@@ -72,7 +74,7 @@ bool spawn_delayz(sf::Time clock,float time){
 
 
 
-
+//
 sf::Vector2f spawn_pos1(sf::Vector2f pos, float radius, float time, float angle)
 {
     // Calculate the position of the spawn object on the circle
@@ -132,14 +134,14 @@ int main(){
     sf::Vector2f object_spawn_position = {20, 10};
     sf::Vector2f object_spawn_position2 = {20,100};
     const sf::Vector2f object_initial_speed = {1000.0,0.0f};
-    const float object_min_radius = 5.5f;
+    const float object_min_radius = 8.5f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .025f;
-    const float spawn_delay2 = .025f;
+    const float spawn_delay = .0025f;
+    const float spawn_delay2 = .0025f;
     const uint32_t max_object_count = 5000;
     const uint32_t max_object_count1 = 5000;
     const float max_angle = 360.0f;
-    \
+    
 //simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,2000);
     sf::Color test(r,g,b);
     int atom_id = 0; 
@@ -153,8 +155,9 @@ sf::Vector2f poz;
     sf::Clock clock2;
     sf::Clock global_time;
 
-    float angle = 5;
-simulator.add_center_line_with_line(sf::Vector2f(Box_constraint.x/2,Box_constraint.y / 2),sf::Vector2f{25,100},angle);
+    float angle = 250;
+
+simulator.add_center_line_with_line(sf::Vector2f(Box_constraint.x/2,Box_constraint.y / 2),sf::Vector2f{15,100},200);
     simulator.setBoxConstraint(Box_constraint);
     bool add_objects = false;
     float time_for_next_object = 2.0f;
@@ -184,7 +187,7 @@ while(window.pollEvent(events)){
 
 
     if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-        // add_objects = true;
+       add_objects = true;
        angle += 100;
 
     }
@@ -227,15 +230,6 @@ atom_id++;
 
 
 }
-    
-
-
-
-
-
-
-
-
 
 //SHADER VARIABLES
 

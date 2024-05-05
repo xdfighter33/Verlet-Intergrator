@@ -57,6 +57,21 @@ void addVelocity(sf::Vector2f v, float dt)
 }
 
 
+
+void set_Spin_rate(float x){
+    rotation_speed = x;
+}
+
+
+
+
+float getRotation(){
+
+    return rotation_speed;
+
+}
+
+ 
 sf::Vector2f getPos()
 {
     return pos;
@@ -68,6 +83,7 @@ sf::Vector2f GetVelocity(float dt)
 {
     return(pos - old_pos) / dt;
 }
+
 
 
 
