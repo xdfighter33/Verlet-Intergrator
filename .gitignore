@@ -407,3 +407,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+SHADER/fixed.png
+Renders/render.hpp
+SHADER/cow.png
