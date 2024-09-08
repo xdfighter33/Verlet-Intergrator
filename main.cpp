@@ -3,14 +3,17 @@
 #include <random>
 #include "Physics/physics.hpp"
 #include "Renders/render.hpp"
-const int window_width = 1000;
-const int window_height = 1000;
+#include "Temp/Settings.hpp"
+
+
+const int window_width = constraints.Window_Size.x;
+const int window_height = constraints.Window_Size.y;
+
+
 
 float r = 0;
 float b = 230;
 float g = 0;
-
-
 
      static sf::Color getRainbow(float t)
     {
@@ -60,7 +63,7 @@ sf::Color velo_test(sf::Vector2f velo){
 //sf::Vector3f sphereColor(250.0f, 0.0f, 0.0f);
 
 
-std::string fragmentShaderPath = std::string(SHADER_DIR) + "/vert.frag";
+// std::string fragmentShaderPath = std::string(SHADER_DIR) + "/vert.frag";
 
 
 bool spawn_delayz(sf::Time clock,float time){
@@ -68,13 +71,13 @@ bool spawn_delayz(sf::Time clock,float time){
     if(clock.asSeconds() >= time ){
 
             return true;
-    }
-    
+    } else 
+    return false;
 };
 
 
 
-//
+
 sf::Vector2f spawn_pos1(sf::Vector2f pos, float radius, float time, float angle)
 {
     // Calculate the position of the spawn object on the circle
@@ -104,12 +107,12 @@ int main(){
 
 
     
-   if (!shader.loadFromFile(fragmentShaderPath, sf::Shader::Fragment))
+  /*  if (!shader.loadFromFile(fragmentShaderPath, sf::Shader::Fragment))
     {
        std::cerr << "Couldn't load vert shader\n";
         return -1;
     }
-
+*/ 
     sf::RenderWindow window(sf::VideoMode(window_width,window_height), "Physics ");
     const uint32_t frame_rate = 60;
     window.setFramerateLimit(frame_rate);
@@ -123,25 +126,35 @@ int main(){
    
     Simulator simulator{1000,1000};
 
-    render renders{window};
+    render renders{window,simulator};
 
     simulator.setSubsStepscount(10);
     simulator.setSimulationUpdateRate(frame_rate);
     const float x_spawn =  100;
     const float y_spawn =  0;
     
-    sf::Vector2f Box_constraint(500,750);
-    sf::Vector2f object_spawn_position = {20, 10};
-    sf::Vector2f object_spawn_position2 = {20,100};
-    const sf::Vector2f object_initial_speed = {1000.0,0.0f};
-    const float object_min_radius = 8.5f;
-    const float object_max_radius = 25.0f;
-    const float spawn_delay = .0025f;
-    const float spawn_delay2 = .0025f;
-    const uint32_t max_object_count = 5000;
-    const uint32_t max_object_count1 = 5000;
-    const float max_angle = 360.0f;
+
+    //Box Spawn Calcations
+
     
+
+    //Put this in its own contraint file
+    sf::Vector2f Box_constraint(750,750);
+    simulator.setBoxConstraint(Box_constraint);
+    sf::Vector2f object_spawn_position = {150,50};
+
+  //  std::cout << "Box Constraint X " << simulator.getBoxConstraintPos().x ;  
+    sf::Vector2f object_spawn_position2 = {150,100};
+    const sf::Vector2f object_initial_speed = {1000.0,0.0f};
+    const float object_min_radius = 5.5f;
+    const float object_max_radius = 25.0f;
+    const float spawn_delay = .025f;
+    const float spawn_delay2 = .025f;
+    const uint32_t max_object_count  = 10000;
+    const uint32_t max_object_count1 = 10000;
+    const float max_angle = 360.0f;
+
+
 //simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,2000);
     sf::Color test(r,g,b);
     int atom_id = 0; 
@@ -155,11 +168,9 @@ sf::Vector2f poz;
     sf::Clock clock2;
     sf::Clock global_time;
 
-    float angle = 250;
-
-simulator.add_center_line_with_line(sf::Vector2f(Box_constraint.x/2,Box_constraint.y / 2),sf::Vector2f{15,100},200);
-    simulator.setBoxConstraint(Box_constraint);
-    bool add_objects = false;
+    float angle = 5;
+    simulator.add_center_line_with_line(sf::Vector2f(Box_constraint.x/2,Box_constraint.y / 2),sf::Vector2f{25,100},angle);
+    bool add_objects = true;
     float time_for_next_object = 2.0f;
     while(window.isOpen()){
 
@@ -187,7 +198,7 @@ while(window.pollEvent(events)){
 
 
     if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-       add_objects = true;
+        add_objects = true;
        angle += 100;
 
     }
@@ -230,15 +241,25 @@ atom_id++;
 
 
 }
+    
+
+
+
+
+
+
+
+
 
 //SHADER VARIABLES
 
 
 
-
 simulator.update(60);
 window.clear(sf::Color::Black);
-renders.renders(simulator);
+// renders.renders_VBO(simulator);
+renders.temp_render();
+// renders.renders(simulator);
 window.display();
 
 

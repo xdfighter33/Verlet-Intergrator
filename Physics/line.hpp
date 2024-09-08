@@ -6,14 +6,14 @@ struct Line
 {
 sf::Vector2f pos; 
 sf::Vector2f old_pos;
-sf::Vector2f Accel{0,0};
+sf::Vector2f Accel;  // Possible issue 
 float rotation_speed;
 sf::Vector2f size; 
 
 
 
 Line(sf::Vector2f Pos, float speed, sf::Vector2f Size)
-: pos{Pos} 
+: pos{Pos}
 , rotation_speed{speed}
 , Accel{0,0}
 , size{Size}
@@ -21,6 +21,9 @@ Line(sf::Vector2f Pos, float speed, sf::Vector2f Size)
 
 }
 
+Line(){
+
+}
 
 public: 
 

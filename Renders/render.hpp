@@ -10,15 +10,19 @@ class render
     sf::VertexArray world_va;
     sf::Texture object_texture;
     sf::Image object_pixel;
+    Simulator& sim;
     explicit
-    render(sf::RenderTarget& target)
+    render(sf::RenderTarget& target,Simulator& sims)
     :m_target{target}
+    , sim{sims}
+    , object_va{sf::Quads}
+
     {
-        object_texture.loadFromFile(std::string(SHADER_DIR) + "/fixed.png");
+        object_texture.loadFromFile(std::string(SHADER_DIR) + "/circle.png");
         object_texture.generateMipmap();
         object_texture.setSmooth(true);
 
-        object_pixel = object_texture.copyToImage();
+      //  object_pixel = object_texture.copyToImage();
     
     }
 
@@ -47,7 +51,6 @@ line.setSize(obj_line.size);
 line.setFillColor(sf::Color::Blue);
 line.setRotation(obj_line.rotation_speed);
 
-
 m_target.draw(line);
 }
 
@@ -56,6 +59,80 @@ m_target.draw(line);
 }
 
 
+
+void renders_VBO(const Simulator& simulator) {
+
+    object_va.resize(4 * simulator.getObject().size());
+
+
+// Prob should center this rectanlge in the center of the screen through a simple translation by *5 
+    auto constraint = simulator.getBoxConstraint();
+    sf::RectangleShape rect(constraint);
+
+    rect.setFillColor(sf::Color::White);
+
+
+    sf::Vector2u windowSize = m_target.getSize();  // Assuming m_target is your render window
+
+    // Calculate the position to center the rectangle
+    float xPos = (windowSize.x - constraint.x) / 2.0f;
+    float yPos = (windowSize.y - constraint.y) / 2.0f;
+
+
+    rect.setPosition(xPos,yPos);
+    m_target.draw(rect);
+
+
+
+    // Begin Animation on the particles 
+    const float    texture_size  = 1024.0f;
+    const float    radius        = 2.5f;
+
+
+
+    
+
+    for(int i{0}; i < simulator.getObjectCount(); i++){
+    
+      const auto& obj = simulator.getObject().at(i);
+
+
+        const uint64_t idx = i << 2;
+
+        //Setting up Posiitons 
+        object_va[idx + 0].position = obj.pos + sf::Vector2f(-radius,-radius);
+        object_va[idx + 1].position = obj.pos + sf::Vector2f(radius,-radius);
+        object_va[idx + 2].position = obj.pos + sf::Vector2f(radius,radius);
+        object_va[idx + 3].position = obj.pos + sf::Vector2f(-radius,radius);
+        
+
+
+
+        //Setting up Textures
+
+        object_va[idx + 0].texCoords = {0.0f        , 0.0f};
+        object_va[idx + 1].texCoords = {texture_size, 0.0f};
+        object_va[idx + 2].texCoords = {texture_size, texture_size};
+        object_va[idx + 3].texCoords = {0.0f        , texture_size};
+
+        sf::Color obj_color = obj.color;
+
+        object_va[idx + 0].color = obj.color;
+        object_va[idx + 1].color = obj.color;
+        object_va[idx + 2].color = obj.color;
+        object_va[idx + 3].color = obj.color;
+
+
+
+    }
+
+
+
+
+    
+
+
+}
 void renders(const Simulator& simulator) const
 {
 
@@ -146,6 +223,20 @@ void renders_texture(const Simulator& simulator) const
 
     
 
+void temp_render(){
+    sf::RenderStates states;
+
+    states.texture = &object_texture;
+
+
+
+    //Render Particles
+    renders_VBO(sim);
+
+
+    m_target.draw(object_va,states);
+
+}
 
 private:
 

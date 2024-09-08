@@ -1,5 +1,5 @@
 #include <sfml/Graphics.hpp>
-
+#include <cmath>
 sf::Vector2f Grav_source_pos = {800,450};
 
 class GravitySource {

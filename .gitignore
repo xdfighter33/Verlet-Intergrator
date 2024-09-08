@@ -28,7 +28,7 @@ Release/
 *.exe
 *.out
 
-
+lib/
 # IDE/Editor specific files (if not using a global gitignore)
 .vscode/
 *.suo
