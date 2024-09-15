@@ -11,18 +11,35 @@ const int window_height = constraints.Window_Size.y;
 
 
 
-float r = 0;
-float b = 230;
-float g = 0;
+float r = 20;
+float b = 5;
+float g = 10;
 
-     static sf::Color getRainbow(float t)
-    {
-        const float r = sin(t);
-        const float g = sin(t + 0.33f * 2.0f * M_PI_4);
-        const float b = sin(t + 0.66f * 2.0f * M_PI_4);
-        return sf::Color(255 * r * r, 255 * g * g, 255 * b * b);
-    }
+static sf::Color getRainbow(float t)
+{
+    // Normalize t to the range [0, 1]
+    t = std::fmod(t, 1.0f);
+    if (t < 0) t += 1.0f;
 
+    // Adjust these values to fine-tune the color effect
+    constexpr uint8_t minBlue = 20;   // Darkest blue
+    constexpr uint8_t maxBlue = 255;  // Lightest blue
+    constexpr uint8_t minGreen = 0;  // Minimum green component
+    constexpr uint8_t maxGreen = 0; // Maximum green component
+    constexpr float contrast = 0.5f;  // Adjust for more pronounced effect
+
+    // Calculate the blue component
+    float blueValue = std::pow(t, contrast);  // Apply contrast
+    uint8_t blue = static_cast<uint8_t>(minBlue + blueValue * (maxBlue - minBlue));
+
+    // Calculate the green component (for a slight teal tint in lighter shades)
+    uint8_t green = static_cast<uint8_t>(minGreen + blueValue * (maxGreen - minGreen));
+
+    // Red is kept low for a true blue effect
+    uint8_t red = static_cast<uint8_t>(blueValue * 20);  // Just a hint of red in lighter shades
+
+    return sf::Color(red, green, blue);
+}
 
 static sf::Color getRainbow(float t, float velx, float vely)
 {
@@ -101,9 +118,10 @@ int getRandomNumber() {
     return dis(gen);
 }
 
+
 int main(){
 
-
+   tp::ThreadPool thread_pool(10);
 
 
     
@@ -124,9 +142,9 @@ int main(){
 
 
    
-    Simulator simulator{1000,1000};
+    Simulator simulator{1000,1000,thread_pool};
 
-    render renders{window,simulator};
+    render renders{window,simulator,thread_pool};
 
     simulator.setSubsStepscount(10);
     simulator.setSimulationUpdateRate(frame_rate);
@@ -139,19 +157,24 @@ int main(){
     
 
     //Put this in its own contraint file
-    sf::Vector2f Box_constraint(750,750);
+    sf::Vector2f Box_constraint(1000,500);
+    sf::Vector2f Box_Positions(simulator.getBoxConstraintPos());
     simulator.setBoxConstraint(Box_constraint);
-    sf::Vector2f object_spawn_position = {150,50};
-
-  //  std::cout << "Box Constraint X " << simulator.getBoxConstraintPos().x ;  
-    sf::Vector2f object_spawn_position2 = {150,100};
-    const sf::Vector2f object_initial_speed = {1000.0,0.0f};
-    const float object_min_radius = 5.5f;
+    sf::Vector2f object_spawn_position = {simulator.getBoxConstraintPos().x - 5.0f, 25};
+    sf::Vector2f object_spawn_position2 = {simulator.getBoxConstraintPos().x - 5.0f, 75};
+    sf::Vector2f object_spawn_position3 = {simulator.getBoxConstraintPos().x - 5.0f, 100};
+     sf::Vector2f object_spawn_position4 = {simulator.getBoxConstraintPos().x - 5.0f, 125};  // New spawn position
+    const sf::Vector2f object_initial_speed = {500.0, 0.0f};
+    const float object_min_radius = 2.5f;
     const float object_max_radius = 25.0f;
-    const float spawn_delay = .025f;
-    const float spawn_delay2 = .025f;
-    const uint32_t max_object_count  = 10000;
-    const uint32_t max_object_count1 = 10000;
+    const float spawn_delay = .000025f;
+    const float spawn_delay2 = .000025f;
+    const float spawn_delay3 = .000025f;
+    const float spawn_delay4 = .000025f;    // New spawn delay
+    const uint32_t max_object_count  = 15000;
+    const uint32_t max_object_count1 = 15000;
+    const uint32_t max_object_count2 = 15000;
+    const uint32_t max_object_count3 = 15000;  
     const float max_angle = 360.0f;
 
 
@@ -166,10 +189,12 @@ sf::Vector2f poz;
 
     sf::Clock clock;
     sf::Clock clock2;
+    sf::Clock clock3;
+    sf::Clock clock4;
     sf::Clock global_time;
 
     float angle = 5;
-    simulator.add_center_line_with_line(sf::Vector2f(Box_constraint.x/2,Box_constraint.y / 2),sf::Vector2f{25,100},angle);
+    // simulator.add_center_line_with_line(sf::Vector2f(Box_constraint.x/2,Box_constraint.y / 2),sf::Vector2f{25,100},angle);
     bool add_objects = true;
     float time_for_next_object = 2.0f;
     while(window.isOpen()){
@@ -188,12 +213,18 @@ while(window.pollEvent(events)){
     if (events.type == sf::Event::Closed)
     {
             window.close();
+    }    else if (events.type == sf::Event::MouseWheelScrolled)
+    {
+        if (events.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
+        {
+            renders.handleZoom(events.mouseWheelScroll.delta, sf::Mouse::getPosition(window));
+        }
     }
 
     if(sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)){
             window.close();
     }
-
+    
 
 
 
@@ -206,41 +237,48 @@ while(window.pollEvent(events)){
 
 }
   
-poz = spawn_pos1(object_spawn_position,30,simulator.return_time(),max_angle);
 
 
-if(add_objects == true){
-if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElapsedTime(),spawn_delay) == true ){
-    float time_spawn = clock.getElapsedTime().asSeconds();
 
-     clock.restart();
+ if(add_objects == true) {
+            // First stream
+            if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElapsedTime(), spawn_delay) == true) {
+                clock.restart();
+                auto & object = simulator.addObject(object_spawn_position, object_min_radius, atom_id);
+                object.color = getRainbow(simulator.return_time());
+                simulator.setObjectVelocity(object, object_initial_speed);
+                atom_id++; 
+            }
 
- auto & object = simulator.addObject(object_spawn_position, object_min_radius,atom_id);
+            // Second stream
+            if (simulator.getObjectCount() < max_object_count1 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object) == true && spawn_delayz(clock2.getElapsedTime(), spawn_delay2) == true) {
+                clock2.restart();
+                auto& object2 = simulator.addObject(object_spawn_position2, object_min_radius, atom_id);
+                object2.color = getRainbow(simulator.return_time());
+                simulator.setObjectVelocity(object2, object_initial_speed);
+                atom_id++;
+            }
+
+            // Third stream
+            if (simulator.getObjectCount() < max_object_count2 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object + 2.0) == true && spawn_delayz(clock3.getElapsedTime(), spawn_delay3) == true) {
+                clock3.restart();
+                auto& object3 = simulator.addObject(object_spawn_position3, object_min_radius, atom_id);
+                object3.color = getRainbow(simulator.return_time());
+                simulator.setObjectVelocity(object3, object_initial_speed);
+                atom_id++;
+            }
 
 
-   object.color =  getRainbow(simulator.return_time());
-   
- //  object.color = getRainbow(simulator.return_time(),object.GetVelocity(simulator.getStepDt()).x,object.GetVelocity(simulator.getStepDt()).y);
-    simulator.setObjectVelocity(object,object_initial_speed);
-    atom_id++; 
-}
+            if (simulator.getObjectCount() < max_object_count3 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object + 4.0) == true && spawn_delayz(clock4.getElapsedTime(), spawn_delay4) == true) {
+                clock4.restart();
+                auto& object4 = simulator.addObject(object_spawn_position4, object_min_radius, atom_id);
+                object4.color = getRainbow(simulator.return_time());
+                simulator.setObjectVelocity(object4, object_initial_speed);
+                atom_id++;
+            }
 
+ }
 
-if (simulator.getObjectCount() < max_object_count1 &&  spawn_delayz(global_time.getElapsedTime(),time_for_next_object) == true && spawn_delayz(clock2.getElapsedTime(),spawn_delay2) == true ){
-    float time_spawn = clock2.getElapsedTime().asSeconds();
-
-     clock2.restart();
-
-    auto& object2 = simulator.addObject(object_spawn_position2,object_min_radius,atom_id);
-   object2.color = getRainbow(simulator.return_time());
-    simulator.setObjectVelocity(object2,object_initial_speed);
-
-atom_id++;
- 
-}
-
-
-}
     
 
 

@@ -21,13 +21,17 @@ class Simulator {
     
 std::vector<Line> m_objects_line;
 
-
+    tp::ThreadPool& thread_pool;
+  std::atomic<int> collision_count{0};
     public:
     std::vector<particle> m_objects;
-	Simulator(uint32_t width, uint32_t height)
+	Simulator(uint32_t width, uint32_t height,tp::ThreadPool& tp)
     : grid(width,height)
     , world_size((float)width,(float)height)
+    , thread_pool{tp}
+    , grid_struct(width,height)
     {
+        m_objects.reserve(20000); 
         grid_struct.clear();
     };
 
@@ -160,16 +164,16 @@ void update(float dt)
     const float sub_dt = dt / static_cast<float>(m_sub_steps);
     for(uint32_t i{m_sub_steps}; i--;)
     {
-    get_line_disance();
-    rotate_all_lines(45);
+    // sget_line_disance();
+    // rotate_all_lines(45);
  
     addObjToGrid();
     //checkCollsion(step_dt);
   //  check_spatial_collision();
 multi_thread_check_spatial_collision();
 //   applyRotatoionGravity(step_dt);
-  //  fricition(step_dt);
-  //  drag_force(step_dt);
+//    fricition(step_dt);
+//    drag_force(step_dt);
   Multi_updateConstraintObjects(step_dt);
 
   
@@ -244,9 +248,9 @@ sf::Vector2f getBoxConstraint() const {
 sf::Vector2f getBoxConstraintPos() const {
 
     auto box_constraints =  getBoxConstraint();
-    float xPos = (constraints.Window_Size.x - box_constraints.x) / 2.0f;
+    float xPos = (constraints.Window_Size.x - box_constraints.x ) / 2.0f;
     float yPos = (constraints.Window_Size.y - box_constraints.y) / 2.0f;
-    
+
     sf::Vector2f Box_pos(xPos,yPos);
 
     return Box_pos;
@@ -398,7 +402,7 @@ void visualizeGrid(const CollisionGrid& grid) {
 
 void check_collision_grid(uint32_t idx1, uint32_t idx2){
 
-    const float response_coef = 1.0f;
+    const float response_coef = 0.75f;
     particle& obj_1 = m_objects[idx1];
     particle& obj_2 = m_objects[idx2];
 
@@ -627,26 +631,11 @@ void Multi_updateObjects(float dt)
         thread.join();
 }
 
-void Multi_updateConstraintObjects(float dt)
-{
-    const size_t numObjects = m_objects.size();
-    const size_t numThreads =  8;
-
-    std::vector<std::thread> threads;
-    threads.reserve(numThreads);
-
-    size_t chunkSize = numObjects / numThreads;
-    size_t remainder = numObjects % numThreads;
-
-    size_t start = 0;
-    for (size_t i = 0; i < numThreads; ++i)
+   void Multi_updateConstraintObjects(float dt)
     {
-        size_t end = start + chunkSize;
-        if (i < remainder)
-            ++end;
+        const size_t numObjects = m_objects.size();
 
-        threads.emplace_back([this, start, end, dt]()
-        {
+        thread_pool.dispatch(numObjects, [this, dt](uint32_t start, uint32_t end) {
             for (size_t j = start; j < end; ++j)
             {
                 auto& obj = m_objects[j];
@@ -654,14 +643,14 @@ void Multi_updateConstraintObjects(float dt)
                 obj.updatePosition(dt);
 
                 // Apply friciton force
-                sf::Vector2f frictionForce = -1.15f * obj.GetVelocity(dt);
+                sf::Vector2f frictionForce = -3.15f * obj.GetVelocity(dt);
                 obj.accerlate(frictionForce);
 
 
             //World boundary put in function later - Use bounding_box 
             float margin = 1.5f; 
             
-
+            float floor_margin  = 500.0f;
             float box_boundary = getBoxConstraintPos().x + getBoxConstraint().x;
 
             float box_beginning = getBoxConstraintPos().x;
@@ -675,15 +664,16 @@ void Multi_updateConstraintObjects(float dt)
         
                         sf::Vector2f v = getBoxConstraint() - obj.pos;
             float dist = sqrt(v.x * v.x + v.y * v.y);
-                 if (obj.pos.x > box_right) {
-                    obj.pos.x = box_right;
+                 if (obj.pos.x > box_right ) {
+                    // std::cout << box_bottom << std::endl;
+                    obj.pos.x = box_right ;
                 } 
                  else if (obj.pos.x < box_left) {
                     obj.pos.x = box_left;
                     // obj.addVelocity(sf::Vector2f(0,-9.0f),dt);
                 }
-                if (obj.pos.y > getBoxConstraint().y - margin) {
-                    obj.pos.y = getBoxConstraint().y - margin;
+                if (obj.pos.y > getBoxConstraint().y + box_top ) {
+                    obj.pos.y = getBoxConstraint().y + box_top;
                 } else if (obj.pos.y < margin) {
                     obj.pos.y =  margin;
                 }
@@ -691,11 +681,7 @@ void Multi_updateConstraintObjects(float dt)
         }
         });
 
-        start = end;
-    }
-
-    for (auto& thread : threads)
-        thread.join();
+  
 }
 
     //QUAD TREE ADDS
@@ -797,15 +783,31 @@ void Multi_updateConstraintObjects(float dt)
         }
     }
 
-void check_cell_collisions(CollisionCell& cell1, CollisionCell& cell2){
-    for(auto& obj_indx_1  : cell1.objects){
-        for(auto& obj_indx_2 : cell2.objects){
-            if(obj_indx_1 != obj_indx_2){
-                solveContact(obj_indx_1,obj_indx_2);
-            }
+void check_cell_collisions(int x, int y) {
+    const auto& cell = grid_struct.getCell(x, y);
+    
+    // Check collisions within the cell
+    for (size_t i = 0; i < cell.size(); ++i) {
+        for (size_t j = i + 1; j < cell.size(); ++j) {
+            check_collision_grids(cell[i], cell[j]);
         }
     }
 
+    // Check collisions with neighboring cells
+    for (int dy = 0; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            int nx = x + dx, ny = y + dy;
+            if (nx >= 0 && nx < grid_struct.getGridWidth() && ny < grid_struct.getGridHeight()) {
+                const auto& neighbor_cell = grid_struct.getCell(nx, ny);
+                for (uint32_t obj1 : cell) {
+                    for (uint32_t obj2 : neighbor_cell) {
+                        check_collision_grids(obj1, obj2);
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -817,7 +819,7 @@ void find_collision_grid(){
                          for(int dy{-1}; dy <= 1; ++dy){
                             auto& other_cell = grid.get(x + dx, y + dy);
 
-                            check_cell_collisions(current_cell,other_cell);
+                            // check_cell_collisions(current_cell,other_cell);
                      }  
                 }
            }
@@ -848,11 +850,12 @@ void find_collision_grid(){
     void addObjToGrid(){
             float box_left = getBoxConstraintPos().x;
             float box_right = box_left + getBoxConstraint().x;
-           
+            float box_top = getBoxConstraintPos().y;
+            float box_bottom = box_top + getBoxConstraint().y;
         grid_struct.clear();
           for (const auto& obj : m_objects) {
             if (obj.pos.x > box_left && obj.pos.x < box_right + 5.0f &&
-                obj.pos.y > 1.0f && obj.pos.y < getBoxConstraint().y - 1.0f){
+                obj.pos.y > box_top  - 5.0f && obj.pos.y < box_bottom + 5.0f){
                     grid_struct.add_object(obj.pos,obj.index);
                 }    
            }
@@ -864,128 +867,19 @@ void find_collision_grid(){
     void test_to_add_to_grid(){
 
         for(const auto& obj: m_objects){
-           std::cout <<  "Testing add object " << grid_struct.getObjectID(obj.pos) << std::endl;
+        //    std::cout <<  "Testing add object " << grid_struct.getObjectID(obj.pos) << std::endl;
          //   grid_struct.print_atom_idx();
         }
 
 
     }
 
-    void check_spatial_collision(){
-        
-    for(auto& pairs : grid_struct.getGrids()){
-    const int cell_index = pairs.first; 
-    auto& objects_in_grid = pairs.second;    
-   
-        for(size_t i  = 0; i < objects_in_grid.size(); i++){
-            const auto& obj1 = objects_in_grid[i];
-            uint32_t obj1Idx = obj1.second;
-
-
-             for(size_t j = i + 1; j < objects_in_grid.size(); ++j)   
-             {
-            const auto& obj2 = objects_in_grid[j];
-            uint32_t obj2Idx = obj2.second;
-
-                check_collision_grid(obj1Idx,obj2Idx);
-
-             }
-
-
-        }         
-
-             for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                if (dx == 0 && dy == 0) continue;
-
-                int neighbor_x = cell_index % grid_struct.getWidth() + dx;
-                int neighbor_y = cell_index / grid_struct.getWidth() + dy;
-
-                // Wrap around the grid boundaries
-                if (neighbor_x < 0) neighbor_x += grid_struct.getWidth();
-                if (neighbor_x >= grid_struct.getWidth()) neighbor_x -= grid_struct.getWidth();
-                if (neighbor_y < 0) neighbor_y += grid_struct.getWidth();
-                if (neighbor_y >= grid_struct.getWidth()) neighbor_y -= grid_struct.getWidth();
-
-                int neighbor_cell_index = neighbor_y * grid_struct.getWidth() + neighbor_x;
-
-                if (neighbor_cell_index >= 0 && neighbor_cell_index < grid_struct.getGrids().size()) {
-                    const auto& neighbor_objects = grid_struct.getGrid(neighbor_cell_index);
-                    for (const auto& obj1 : objects_in_grid) {
-                        uint32_t obj1IDX = obj1.second;
-                        for (const auto& obj2 : neighbor_objects) {
-                            uint32_t obj2IDX = obj2.second;
-                            if (obj1IDX != obj2IDX) {
-                                check_collision_grid(obj1IDX, obj2IDX);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    }
+ 
 
 //  pass in GRID IDX of each item in the grid 
 
 
-void check_hash_cells(std::unordered_map< int, std::vector<std::pair<sf::Vector2f, uint32_t>>> grids){
 
-}
-//Passing in grid data with start and end 
-// each thread should look towards unorederd_maps  start - end using find 
-void check_hash_map_collisions(std::unordered_map< int, std::vector<std::pair<sf::Vector2f, uint32_t>>> grids){
-m_objectMutex.lock();
-    for(auto& pairs : grids){
-        const int cell_index = pairs.first; 
-        auto& objects_in_grid = pairs.second;
-        for(int i{0}; i < objects_in_grid.size(); i++ ){
-            
-            const auto& obj1 = objects_in_grid[i];
-            uint32_t obj1IDX = obj1.second;
-        for(size_t j = i + 1; j < objects_in_grid.size(); ++j)   
-             {
-            const auto& obj2 = objects_in_grid[j];
-            uint32_t obj2IDX = obj2.second;
-
-
-               check_collision_grid(obj1IDX,obj2IDX);
-
-             }    
-
-        }
-         for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                if (dx == 0 && dy == 0) continue;
-               
-                int neighbor_x = cell_index % grid_struct.getWidth() + dx;
-                int neighbor_y = cell_index / grid_struct.getWidth() + dy;
-               
-                // Wrap around the grid boundaries
-                if (neighbor_x < 0) neighbor_x += grid_struct.getWidth();
-                if (neighbor_x >= grid_struct.getWidth()) neighbor_x -= grid_struct.getWidth();
-                if (neighbor_y < 0) neighbor_y += grid_struct.getWidth();
-                if (neighbor_y >= grid_struct.getWidth()) neighbor_y -= grid_struct.getWidth();
-
-                int neighbor_cell_index = neighbor_y * grid_struct.getWidth() + neighbor_x;
-
-                if (neighbor_cell_index >= 0 && neighbor_cell_index < grid_struct.getGrids().size()) {
-                    const auto& neighbor_objects = grid_struct.getGrid(neighbor_cell_index);
-                    for (const auto& obj1 : objects_in_grid) {
-                        uint32_t obj1IDX = obj1.second;
-                        for (const auto& obj2 : neighbor_objects) {
-                            uint32_t obj2IDX = obj2.second;
-                            if (obj1IDX != obj2IDX) {
-                                check_collision_grid(obj1IDX, obj2IDX);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-m_objectMutex.unlock();
-}
 
 //using thread_pool to implement problem 
 // Call thread_pool 
@@ -1001,87 +895,110 @@ void fixed_Multi_thread_check_spatial_collision(){
 
 
 }
-void multi_thread_check_spatial_collision(){
+void multi_thread_check_spatial_collision() {
+    const auto& grid = grid_struct.getGrids();
+    const int grid_width = grid_struct.getGridWidth();
+    const int grid_height = grid_struct.getGridHeight();
 
-
-    //Discord variable 
-    uint32_t num_of_threads = 4; 
-    const auto& grids = grid_struct.getGrids();
-    const uint32_t grid_width = grid_struct.getWidth();
-    const uint32_t num_cells = grids.size();
-    
-    
-    //Split grid into 2's
-    auto First_Half_grid = grid_struct.copyHalfMap(grids,true);
-    auto Second_Half_grid = grid_struct.copyHalfMap(grids,false);
-
-
-    // Split grid into quarters 
-    // Prob should make this into a function 
-    auto First_quarter_grid = grid_struct.copyHalfMap(First_Half_grid,true);
-    auto Second_quarter_grid = grid_struct.copyHalfMap(First_Half_grid,false);
-
-    auto Third_quarter_grid = grid_struct.copyHalfMap(Second_Half_grid,true);
-    auto Fourth_quarter_grid = grid_struct.copyHalfMap(Second_Half_grid,false);
-
-
-
-    std::vector<std::thread> threads;
-
-    std::vector<std::chrono::microseconds> thread_durations(num_of_threads);
-
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-
-
-    //Threads in use 
-    threads.push_back(std::thread([this, &First_quarter_grid, &thread_durations]() {
-
-     auto start = std::chrono::high_resolution_clock::now();
-    this->check_hash_map_collisions(First_quarter_grid);  
-    auto end = std::chrono::high_resolution_clock::now();
-    thread_durations[0] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);;
-    
-}));
-   threads.push_back(std::thread([this, &Second_quarter_grid, &thread_durations](){
-    auto start = std::chrono::high_resolution_clock::now();
-    
-
-    this->check_hash_map_collisions(Second_quarter_grid);
-
-    auto end = std::chrono::high_resolution_clock::now();
-    thread_durations[1] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-}));
-    threads.push_back(std::thread([this, &Third_quarter_grid, &thread_durations]() {
-    auto start =  std::chrono::high_resolution_clock::now();
-    this->check_hash_map_collisions(Third_quarter_grid);
-    auto end = std::chrono::high_resolution_clock::now();
-    thread_durations[2] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-}));
-   threads.push_back(std::thread([this, &Fourth_quarter_grid, &thread_durations](){
-    auto start = std::chrono::high_resolution_clock::now();
-    this->check_hash_map_collisions(Fourth_quarter_grid);
-    auto end = std::chrono::high_resolution_clock::now();
-    thread_durations[3] = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-}));
-
-
-    for(auto& thread : threads){
-        thread.join();
+    thread_pool.dispatch(grid_width * grid_height, [this, &grid, grid_width, grid_height](uint32_t start, uint32_t end) {
+        for (uint32_t i = start; i < end; ++i) {
+            int x = i % grid_width;
+            int y = i / grid_width;
+            check_cell_collisions(x, y);
+        }
+    });
     }
 
-    bool debug_thread_time = false;
-    if(debug_thread_time == true){
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+void process_grid_partition(const std::unordered_map<int, std::vector<uint32_t>>& grids, uint32_t start, uint32_t end) {
+    auto it = grids.begin();
+    std::advance(it, start);
 
-    std::cout << "Multi-threaded execution time: " << total_duration.count() << " microseconds" << std::endl;
+    for (uint32_t i = start; i < end && it != grids.end(); ++i, ++it) {
+        const int cell_index = it->first;
+        const auto& objects_in_grid = it->second;
 
-    for (size_t i = 0; i < num_of_threads; ++i) {
-        std::cout << "Thread " << i << " execution time: " << thread_durations[i].count() << " microseconds" << std::endl;
+        // Check collisions within the cell
+        for (size_t j = 0; j < objects_in_grid.size(); ++j) {
+            const uint32_t obj1Idx = objects_in_grid[j];
+
+            for (size_t k = j + 1; k < objects_in_grid.size(); ++k) {
+                const uint32_t obj2Idx = objects_in_grid[k];
+                if (check_collision_grids(obj1Idx, obj2Idx)) {
+                    collision_count++;
+
+                }
+            }
+        }
+
+        // Check collisions with neighboring cells
+       check_neighboring_cells(grids, cell_index, objects_in_grid);
     }
 }
+
+
+
+void check_neighboring_cells(const std::unordered_map<int, std::vector<uint32_t>>& grids, 
+                             int cell_index, 
+                             const std::vector<uint32_t>& objects_in_grid) {
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+            if (dx == 0 && dy == 0) continue;
+
+            int neighbor_x = cell_index % grid_struct.getWidth() + dx;
+            int neighbor_y = cell_index / grid_struct.getWidth() + dy;
+
+            // Wrap around the grid boundaries
+            if (neighbor_x < 0) neighbor_x += grid_struct.getWidth();
+            if (neighbor_x >= grid_struct.getWidth()) neighbor_x -= grid_struct.getWidth();
+            if (neighbor_y < 0) neighbor_y += grid_struct.getWidth();
+            if (neighbor_y >= grid_struct.getWidth()) neighbor_y -= grid_struct.getWidth();
+
+            int neighbor_cell_index = neighbor_y * grid_struct.getWidth() + neighbor_x;
+
+            auto neighbor_it = grids.find(neighbor_cell_index);
+            if (neighbor_it != grids.end()) {
+                const auto& neighbor_objects = neighbor_it->second;
+                for (const uint32_t obj1IDX : objects_in_grid) {
+                    for (const uint32_t obj2IDX : neighbor_objects) {
+                        if (obj1IDX != obj2IDX) {
+                            if (check_collision_grids(obj1IDX, obj2IDX)) {
+                                collision_count++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+
+
+    bool check_collision_grids(uint32_t idx1, uint32_t idx2) {
+        const float response_coef = 0.75f;
+        particle& obj_1 = m_objects[idx1];
+        particle& obj_2 = m_objects[idx2];
+
+        const sf::Vector2f v = obj_1.pos - obj_2.pos;
+        const float dist2 = v.x * v.x + v.y * v.y;
+        const float min_dit = obj_1.radius + obj_2.radius;
+        const float min_dist_square = min_dit * min_dit;
+
+        if (dist2 < min_dist_square) {
+            const float dist = sqrt(dist2);
+            const sf::Vector2f n = v / dist;
+            const float mass_ratio_1 = obj_1.radius / (obj_1.radius + obj_2.radius);
+            const float mass_ratio_2 = obj_2.radius / (obj_1.radius + obj_2.radius);
+            const float delta = 0.25f * response_coef * (dist - min_dit);
+
+            // Update positions
+            obj_1.pos -= n * (mass_ratio_2 * delta);
+            obj_2.pos += n * (mass_ratio_1 * delta);
+
+            return true;  // Collision occurred
+        }
+        return false;  // No collision
+    }
 
 
 void test_multi_thread_check_spatial_collision() {

@@ -1,133 +1,79 @@
 #include <iostream>
-#include <stdint.h>
-#include <unordered_map>
-class SpatialHashing{
+#include <vector>
+#include <array>
+#include <cmath>
+#include <SFML/System/Vector2.hpp>
 
+class SpatialHashing {
 private:
-    int height = 1000;
-    int cell_size = 50; 
-    int min = 0;
-    int max = 1000;
-    float distance_check = 5;
-    int width = (max - min) / cell_size;
-    int grid_cell;
-    int buckets = width * width;
-    int conversion_factor = 1 / cell_size;
-    std::unordered_map< int, std::vector<std::pair<sf::Vector2f, uint32_t>>> grids;
-public: 
-   
+    static constexpr int DEFAULT_CELL_SIZE = 9;
+    static constexpr float DEFAULT_DISTANCE_CHECK = 5.0f;
+    int m_width;
+    int m_height;
+    int m_cell_size;
+    float m_distance_check;
+    int m_grid_width;
+    int m_grid_height;
+    std::vector<std::vector<uint32_t>> m_grids;
 
-    void set_grid_cell(int x, int y){
-
-        grid_cell = floor(x/ cell_size )  / floor (y/ cell_size ) * width;
+    inline int hashCoords(int x, int y) const {
+        return x + y * m_grid_width;
     }
 
+public:
+    SpatialHashing(int width, int height, int cell_size = DEFAULT_CELL_SIZE, float distance_check = DEFAULT_DISTANCE_CHECK)
+        : m_width(width), m_height(height), m_cell_size(cell_size), m_distance_check(distance_check) {
+        m_grid_width = width / cell_size + 1;
+        m_grid_height = height / cell_size + 1;
+        m_grids.resize(m_grid_width * m_grid_height);
+    }
 
-void set_grid_cell(sf::Vector2f pos) {
-    int col = static_cast<int>(pos.x) / cell_size;
-    int row = static_cast<int>(pos.y) / cell_size;
-    grid_cell = row * width + col;
-}
+    void add_object(const sf::Vector2f& pos, uint32_t idx) {
+        int grid_x = std::clamp(static_cast<int>(pos.x) / m_cell_size, 0, m_grid_width - 1);
+        int grid_y = std::clamp(static_cast<int>(pos.y) / m_cell_size, 0, m_grid_height - 1);
+        int grid_index = hashCoords(grid_x, grid_y);
+        m_grids[grid_index].push_back(idx);
+    }
 
-  
-
-    void add_object(sf::Vector2f test,uint32_t idx){
-        set_grid_cell(test);
- 
-        grids[grid_cell].emplace_back(test,idx);
-
-    }   
-    
-
-    void clear(){
-
-        for(auto& pairs : grids){
-
-            pairs.second.clear();
+    void clear() {
+        for (auto& cell : m_grids) {
+            cell.clear();
         }
-        grids.clear();
     }
-  
-    //Calcualte the adjacent cells 
-    void cell_in_range(){
 
+    const std::vector<std::vector<uint32_t>>& getGrids() const {
+        return m_grids;
+    }
 
+    int getWidth() const { return m_width; }
+    int getHeight() const { return m_height; }
+    int getGridWidth() const { return m_grid_width; }
+    int getGridHeight() const { return m_grid_height; }
+
+    const std::vector<uint32_t>& getCell(int grid_x, int grid_y) const {
+        int index = hashCoords(grid_x, grid_y);
+        return m_grids[index];
+    }
+
+    std::vector<uint32_t> getNeighbors(const sf::Vector2f& pos) const {
+        std::vector<uint32_t> neighbors;
+        int grid_x = static_cast<int>(pos.x) / m_cell_size;
+        int grid_y = static_cast<int>(pos.y) / m_cell_size;
         
+        for (int dy = -1; dy <= 1; ++dy) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                int nx = std::clamp(grid_x + dx, 0, m_grid_width - 1);
+                int ny = std::clamp(grid_y + dy, 0, m_grid_height - 1);
+                const auto& cell = getCell(nx, ny);
+                neighbors.insert(neighbors.end(), cell.begin(), cell.end());
+            }
+        }
+        return neighbors;
     }
 
-/* 
-
-
-Split cells by the number of threads
-Itierate through each grid per thread
-Get object Ids and pass into Collsion_Check 
-Collision_check(atom_idx1,atom_idx2)
-*/
-    //Test function 
-void print_buckets() {
-    for (const auto& pair : grids) {
-        std::cout << "Bucket " << pair.first << " contains " << pair.second.size() << " objects:" << std::endl;
-        for (const auto& obj_pair : pair.second) {
-            std::cout << obj_pair.second << " " << obj_pair.first.x << ", " << obj_pair.first.y << std::endl;
+    void optimize() {
+        for (auto& cell : m_grids) {
+            cell.shrink_to_fit();
         }
     }
-}
-
-
-
-
-    //Return Grid 
-    const std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>>& getGrids()  {
-        return grids;
-    }
-
-    //Return half of the grid
-    //Using to test for two thread collision check 
-std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>> copyHalfMap(const std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>>& grids, bool firstHalf) {
-    std::unordered_map<int, std::vector<std::pair<sf::Vector2f, uint32_t>>> halfMap;
-    
-    // Calculate the number of elements to copy (half of the original map)
-    size_t halfSize = grids.size() / 2;
-    
-    // Copy the desired half of the elements into the new map
-    auto it = grids.begin();
-    if (!firstHalf) {
-        std::advance(it, halfSize);
-    }
-    
-    for (size_t i = 0; i < halfSize; ++i) {
-        halfMap.insert(*it);
-        ++it;
-    }
-    
-    return halfMap;
-}
-//Object id uses a pair to POS and uint32_t IDX 
-uint32_t getObjectID(const sf::Vector2f& pos) {
-    set_grid_cell(pos);
-    const auto& bucket = grids[grid_cell];
-    const auto& iter = std::find_if(bucket.begin(), bucket.end(), [&pos](const std::pair<sf::Vector2f, uint32_t>& pair) {
-        return pair.first == pos;
-    });
-
-    if (iter != bucket.end()) {
-        return iter->second;
-    }
-
-    return 0; // Return 0 if the position is not found (or any other appropriate value)
-};
-
- int getWidth(){
-    return width;
- }
-const std::vector<std::pair<sf::Vector2f, uint32_t>>& getGrid(int index) {
-    if (index >= 0 && index < static_cast<int>(grids.size())) {
-        return grids[index];
-    } else {
-        // Handle out-of-bounds index
-        static const std::vector<std::pair<sf::Vector2f, uint32_t>> empty_vector;
-        return empty_vector;
-    }
-}
-
 };

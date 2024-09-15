@@ -24,12 +24,4 @@ Thread_Pool(uint32_t num_threads){
 }
 
 
-}
-
-// namespace TP{
-
-
-
-
-
-// 
+};

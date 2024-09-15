@@ -1,22 +1,17 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.27)
+set(PROJECT_NAME Verlet)
+project(${PROJECT_NAME} VERSION 1.0.0 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_BUILD_TYPE Release) 
 
-project(CMakeSFMLProject LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(SOURCES main.cpp)
 
-
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_CXX_FLAGSDEBUG "-g -O0 -fno-omit-frame-pointer")
-
-include(FetchContent)
-
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 2.6.x)
-
-FetchContent_MakeAvailable(SFML)
 
 set(SPATIAL_HASH_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Spatial_Hash")
 set(PHYSICS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Physics")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
 include_directories(
@@ -26,18 +21,21 @@ include_directories(
 )
 
 
-add_executable(CMakeSFMLProject main.cpp)
+
+
+# Detect and add SFML
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
+find_package(SFML 2.6 REQUIRED COMPONENTS  graphics window )
+
+add_executable(${PROJECT_NAME} 
+   main.cpp
+)
+target_link_libraries(${PROJECT_NAME}  sfml-window sfml-graphics)
+# set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
+if (UNIX)
+   target_link_libraries(${PROJECT_NAME} pthread)
+endif (UNIX)
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/SHADER DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
 get_filename_component(SHADER_ABSOLUTE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/SHADER" ABSOLUTE)
-
-target_compile_definitions(CMakeSFMLProject PRIVATE SHADER_DIR="${SHADER_ABSOLUTE_PATH}")
-
-target_link_libraries(CMakeSFMLProject PRIVATE sfml-graphics)
-
-target_compile_features(CMakeSFMLProject PRIVATE cxx_std_17)
-
-
-
-install(TARGETS CMakeSFMLProject)
+ target_compile_definitions(Verlet  PRIVATE SHADER_DIR="${SHADER_ABSOLUTE_PATH}")
