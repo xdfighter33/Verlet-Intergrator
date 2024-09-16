@@ -45,7 +45,7 @@ sf::Font m_font;
     m_statsText.setFont(m_font);
     m_statsText.setCharacterSize(24); // Set the text size
     m_statsText.setFillColor(sf::Color::White);
-    m_statsText.setPosition(0, 30);
+    m_statsText.setPosition(0, -60);
 
 
      m_view = m_target.getDefaultView();
@@ -116,7 +116,7 @@ void multiThreadPhysicsUpdate(){
  object_va.resize(4 * sim.getObject().size());
 
     const float texture_size = 1024.0f;
-    const float radius       = 2.5f;
+    const float radius       = 4.5f;
     thread_pool.dispatch((sim.m_objects.size()), [&](uint32_t start, uint32_t end) {
         for (uint32_t i{start}; i < end; ++i) {
             const auto& object = sim.getObject().at(i);
@@ -142,6 +142,7 @@ void multiThreadPhysicsUpdate(){
 void draw_constraint(){
         auto constraint = sim.getBoxConstraint();
         sf::RectangleShape rect(constraint);
+         sf::Vector2f centerPos;
         rect.setFillColor(sf::Color::White);
         sf::Vector2u windowSize = m_target.getSize();
         sf::Vector2f rec_pos = sim.getBoxConstraintPos();

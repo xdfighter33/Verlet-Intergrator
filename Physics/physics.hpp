@@ -31,7 +31,7 @@ std::vector<Line> m_objects_line;
     , thread_pool{tp}
     , grid_struct(width,height)
     {
-        m_objects.reserve(20000); 
+        m_objects.reserve(55000); 
         grid_struct.clear();
     };
 
@@ -248,8 +248,8 @@ sf::Vector2f getBoxConstraint() const {
 sf::Vector2f getBoxConstraintPos() const {
 
     auto box_constraints =  getBoxConstraint();
-    float xPos = (constraints.Window_Size.x - box_constraints.x ) / 2.0f;
-    float yPos = (constraints.Window_Size.y - box_constraints.y) / 2.0f;
+    float xPos = (constraints.Window_Size.x - box_constraints.x );
+    float yPos = (constraints.Window_Size.y - box_constraints.y);
 
     sf::Vector2f Box_pos(xPos,yPos);
 

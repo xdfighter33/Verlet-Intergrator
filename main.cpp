@@ -15,7 +15,15 @@ float r = 20;
 float b = 5;
 float g = 10;
 
-static sf::Color getRainbow(float t)
+    static sf::Color getRainbow(float t)
+    {
+        const float r = sin(t);
+        const float g = sin(t + 0.33f * 2.0f);
+        const float b = sin(t + 0.66f * 2.0f);
+    return sf::Color(255 * r * r ,255 * g * g ,255 * b * b);
+    }
+
+static sf::Color getRainbow(float t, float z)
 {
     // Normalize t to the range [0, 1]
     t = std::fmod(t, 1.0f);
@@ -24,9 +32,9 @@ static sf::Color getRainbow(float t)
     // Adjust these values to fine-tune the color effect
     constexpr uint8_t minBlue = 20;   // Darkest blue
     constexpr uint8_t maxBlue = 255;  // Lightest blue
-    constexpr uint8_t minGreen = 0;  // Minimum green component
-    constexpr uint8_t maxGreen = 0; // Maximum green component
-    constexpr float contrast = 0.5f;  // Adjust for more pronounced effect
+    constexpr uint8_t minGreen = 50;  // Minimum green component
+    constexpr uint8_t maxGreen = 250; // Maximum green component
+    constexpr float contrast = 1.5f;  // Adjust for more pronounced effect
 
     // Calculate the blue component
     float blueValue = std::pow(t, contrast);  // Apply contrast
@@ -146,7 +154,7 @@ int main(){
 
     render renders{window,simulator,thread_pool};
 
-    simulator.setSubsStepscount(10);
+    simulator.setSubsStepscount(20);
     simulator.setSimulationUpdateRate(frame_rate);
     const float x_spawn =  100;
     const float y_spawn =  0;
@@ -157,25 +165,63 @@ int main(){
     
 
     //Put this in its own contraint file
-    sf::Vector2f Box_constraint(1000,500);
+    sf::Vector2f Box_constraint(1920,1000);
     sf::Vector2f Box_Positions(simulator.getBoxConstraintPos());
     simulator.setBoxConstraint(Box_constraint);
     sf::Vector2f object_spawn_position = {simulator.getBoxConstraintPos().x - 5.0f, 25};
     sf::Vector2f object_spawn_position2 = {simulator.getBoxConstraintPos().x - 5.0f, 75};
     sf::Vector2f object_spawn_position3 = {simulator.getBoxConstraintPos().x - 5.0f, 100};
      sf::Vector2f object_spawn_position4 = {simulator.getBoxConstraintPos().x - 5.0f, 125};  // New spawn position
-    const sf::Vector2f object_initial_speed = {500.0, 0.0f};
-    const float object_min_radius = 2.5f;
+    const sf::Vector2f object_initial_speed = {6500.0, 0.0f};
+    const float object_min_radius = 4.5f;
     const float object_max_radius = 25.0f;
     const float spawn_delay = .000025f;
     const float spawn_delay2 = .000025f;
     const float spawn_delay3 = .000025f;
     const float spawn_delay4 = .000025f;    // New spawn delay
-    const uint32_t max_object_count  = 15000;
-    const uint32_t max_object_count1 = 15000;
-    const uint32_t max_object_count2 = 15000;
-    const uint32_t max_object_count3 = 15000;  
+    const uint32_t max_object_count  = 50000;
+    const uint32_t max_object_count1 = 50000;
+    const uint32_t max_object_count2 = 50000;
+    const uint32_t max_object_count3 = 50000;  
     const float max_angle = 360.0f;
+
+
+
+sf::Vector2f object_spawn_position5 = {simulator.getBoxConstraintPos().x - 5.0f, 150};
+sf::Vector2f object_spawn_position6 = {simulator.getBoxConstraintPos().x - 5.0f, 175};
+sf::Vector2f object_spawn_position7 = {simulator.getBoxConstraintPos().x - 5.0f, 200};
+sf::Vector2f object_spawn_position8 = {simulator.getBoxConstraintPos().x - 5.0f, 225};
+sf::Vector2f object_spawn_position9 = {simulator.getBoxConstraintPos().x - 5.0f, 250};
+
+const float spawn_delay5 = .000025f;
+const float spawn_delay6 = .000025f;
+const float spawn_delay7 = .000025f;
+const float spawn_delay8 = .000025f;
+const float spawn_delay9 = .000025f;
+
+const uint32_t max_object_count4 = 50000;
+const uint32_t max_object_count5 = 50000;
+const uint32_t max_object_count6 = 50000;
+const uint32_t max_object_count7 = 50000;
+const uint32_t max_object_count8 = 50000;
+
+sf::Clock clock5;
+sf::Clock clock6;
+sf::Clock clock7;
+sf::Clock clock8;
+sf::Clock clock9;
+
+  std::vector<StreamProperties> streams(12);
+for (int i = 0; i < 12; ++i) {
+    streams[i] = {
+        sf::Vector2f(simulator.getBoxConstraintPos().x - 5.0f, 5.0f + i * 20.0f),
+        0.000025f,
+        25000,
+        2.0f + i * 0.5f,
+        clock5
+    };
+}
+
 
 
 //simulator.Add_all_objects(sf::Vector2f(0,0),object_min_radius,2000);
@@ -240,7 +286,26 @@ while(window.pollEvent(events)){
 
 
 
- if(add_objects == true) {
+bool add_object_vector = true;
+
+
+if (add_object_vector) {
+    for (int i = 0; i < streams.size(); ++i) {
+        auto& stream = streams[i];
+        if (simulator.getObjectCount() < stream.max_object_count && 
+            spawn_delayz(global_time.getElapsedTime(), stream.time_for_next_object) && 
+            spawn_delayz(stream.clock.getElapsedTime(), stream.spawn_delay)) {
+        
+            stream.clock.restart();
+            auto& object = simulator.addObject(stream.spawn_position, object_min_radius, atom_id);
+            object.color = getRainbow(simulator.return_time()); // Slightly different color for each stream
+            simulator.setObjectVelocity(object, object_initial_speed);
+            atom_id++;
+        }
+    }
+} 
+
+ if(add_objects == false) {
             // First stream
             if (simulator.getObjectCount() < max_object_count && spawn_delayz(clock.getElapsedTime(), spawn_delay) == true) {
                 clock.restart();
@@ -276,6 +341,50 @@ while(window.pollEvent(events)){
                 simulator.setObjectVelocity(object4, object_initial_speed);
                 atom_id++;
             }
+            if (simulator.getObjectCount() < max_object_count4 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object + 6.0) == true && spawn_delayz(clock5.getElapsedTime(), spawn_delay5) == true) {
+        clock5.restart();
+        auto& object5 = simulator.addObject(object_spawn_position5, object_min_radius, atom_id);
+        object5.color = getRainbow(simulator.return_time());
+        simulator.setObjectVelocity(object5, object_initial_speed);
+        atom_id++;
+    }
+
+    // Sixth stream
+    if (simulator.getObjectCount() < max_object_count5 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object + 8.0) == true && spawn_delayz(clock6.getElapsedTime(), spawn_delay6) == true) {
+        clock6.restart();
+        auto& object6 = simulator.addObject(object_spawn_position6, object_min_radius, atom_id);
+        object6.color = getRainbow(simulator.return_time());
+        simulator.setObjectVelocity(object6, object_initial_speed);
+        atom_id++;
+    }
+
+    // Seventh stream
+    if (simulator.getObjectCount() < max_object_count6 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object + 10.0) == true && spawn_delayz(clock7.getElapsedTime(), spawn_delay7) == true) {
+        clock7.restart();
+        auto& object7 = simulator.addObject(object_spawn_position7, object_min_radius, atom_id);
+        object7.color = getRainbow(simulator.return_time());
+        simulator.setObjectVelocity(object7, object_initial_speed);
+        atom_id++;
+    }
+
+    // Eighth stream
+    if (simulator.getObjectCount() < max_object_count7 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object + 12.0) == true && spawn_delayz(clock8.getElapsedTime(), spawn_delay8) == true) {
+        clock8.restart();
+        auto& object8 = simulator.addObject(object_spawn_position8, object_min_radius, atom_id);
+        object8.color = getRainbow(simulator.return_time());
+        simulator.setObjectVelocity(object8, object_initial_speed);
+        atom_id++;
+    }
+
+    // Ninth stream
+    if (simulator.getObjectCount() < max_object_count8 && spawn_delayz(global_time.getElapsedTime(), time_for_next_object + 14.0) == true && spawn_delayz(clock9.getElapsedTime(), spawn_delay9) == true) {
+        clock9.restart();
+        auto& object9 = simulator.addObject(object_spawn_position9, object_min_radius, atom_id);
+        object9.color = getRainbow(simulator.return_time());
+        simulator.setObjectVelocity(object9, object_initial_speed);
+        atom_id++;
+    }
+    
 
  }
 

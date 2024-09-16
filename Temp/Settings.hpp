@@ -16,43 +16,13 @@ struct Settings{
 
 
 
-class Stream{
-
-
-
-    
-    
-    private:
-    std::vector<particle> object_stream;
-    int num_of_streams;
-    int atom_idx = 0;
-    int object_count;
+struct StreamProperties {
+    sf::Vector2f spawn_position;
     float spawn_delay;
-    sf::Vector2f InitialPosition;
-    float radius;
-
-    
-    void addObjectsToStream(){
-        for(int i{0}; i < object_count; i++){
-            if(i % 2 != 0){
-                InitialPosition.y += 50;
-            }
-            addObject(InitialPosition,radius,atom_idx);
-            atom_idx++;
-        }
-
-    
-    }
-
-
-particle& addObject(sf::Vector2f position, float radius, float idx){
-
-    particle newParticle(position, radius,idx);
-    
-    object_stream.push_back(newParticle);
-
-    return object_stream.back();
-}
-
+    uint32_t max_object_count;
+    float time_for_next_object;
+    sf::Clock clock;
 };
+
+
 

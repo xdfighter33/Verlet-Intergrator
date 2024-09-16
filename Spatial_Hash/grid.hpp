@@ -6,8 +6,8 @@
 
 class SpatialHashing {
 private:
-    static constexpr int DEFAULT_CELL_SIZE = 9;
-    static constexpr float DEFAULT_DISTANCE_CHECK = 5.0f;
+    static constexpr int DEFAULT_CELL_SIZE = 8;
+    static constexpr float DEFAULT_DISTANCE_CHECK = 20.0f;
     int m_width;
     int m_height;
     int m_cell_size;
